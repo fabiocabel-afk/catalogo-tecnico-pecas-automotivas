@@ -44,6 +44,21 @@
             border-bottom: 1px solid var(--border);
             z-index: 10;
             position: relative;
+            height: 52px; /* Altura exata definida para controle do alinhamento das modais */
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-logo {
+            width: 28px;
+            height: 28px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid var(--border);
         }
 
         .menu-btn {
@@ -80,9 +95,9 @@
         .menu-item {
             background: none;
             border: none;
-            padding: 0.8rem 1rem;
+            padding: 0.7rem 1rem;
             text-align: left;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 500;
             cursor: pointer;
             color: var(--text);
@@ -245,15 +260,16 @@
             color: var(--text-secondary);
         }
 
+        /* MODAIS FIXADAS LOGO ABAIXO DO HEADER PRINCIPAL */
         .modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.4);
             display: flex;
-            align-items: center;
+            align-items: flex-start; /* Fixa o conteúdo alinhado ao topo */
             justify-content: center;
             z-index: 100;
             visibility: hidden;
@@ -268,12 +284,67 @@
 
         .modal-content {
             background: var(--surface);
-            width: 90%;
+            width: 95%;
             max-width: 500px;
-            max-height: 85vh;
+            /* margin-top: garante o encaixe perfeito logo abaixo do header */
+            margin-top: 56px; 
+            /* max-height reajustado para descontar o espaço que sobrou na tela do celular */
+            max-height: calc(100vh - 70px);
             border-radius: 12px;
-            padding: 1.5rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Conteiner Superior Fixo dentro do Cadastro/Edição */
+        .modal-fixed-header {
+            padding: 1.2rem 1.2rem 0 1.2rem;
+            background: var(--surface);
+            z-index: 5;
+        }
+
+        .form-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border);
+            margin-top: 0.6rem;
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .form-tab-btn {
+            flex: 1;
+            padding: 0.6rem 0.5rem;
+            background: none;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            text-align: center;
+        }
+
+        .form-tab-btn.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .cadastro-form-body {
+            flex: 1;
             overflow-y: auto;
+            padding: 1rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-tab-content {
+            display: none;
+        }
+
+        .form-tab-content.active {
             display: flex;
             flex-direction: column;
             gap: 1rem;
@@ -282,15 +353,27 @@
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 0.4rem;
+            gap: 0.3rem;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
         }
 
         input, select, textarea {
-            padding: 0.6rem;
+            padding: 0.65rem;
             border: 1px solid var(--border);
             border-radius: 6px;
             font-size: 1rem;
             width: 100%;
+            color: var(--text);
+            background: var(--surface);
+        }
+
+        select.medida-nome-select option[value=""] {
+            color: #94a3b8;
         }
 
         .search-results {
@@ -315,9 +398,15 @@
 
         .measurement-row-form {
             display: grid;
-            grid-template-columns: 1fr 1fr 80px auto;
-            gap: 0.5rem;
+            grid-template-columns: 2fr 1.2fr 1fr auto;
+            gap: 0.4rem;
             align-items: center;
+        }
+
+        .measurement-row-form input, 
+        .measurement-row-form select {
+            padding: 0.5rem;
+            font-size: 0.95rem;
         }
 
         .info-popup-section {
@@ -327,7 +416,6 @@
             border: 1px solid var(--border);
         }
 
-        /* ESTILOS GERENCIADOR DE FOTOS (EDIÇÃO) */
         .fotos-atuais-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -364,13 +452,33 @@
             cursor: pointer;
             text-align: center;
         }
+
+        .modal-footer-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            padding: 1rem 1.2rem 1.2rem 1.2rem;
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+            width: 100%;
+            z-index: 5;
+        }
+
+        .modal-footer-buttons .btn {
+            padding: 0.85rem;
+            font-size: 1rem;
+            text-align: center;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <div style="width: 40px;"></div>
-        <h2>Catálogo</h2>
+        <div class="header-brand">
+            <img src="./favicon.png" class="header-logo" alt="Logo">
+            <h2>Catálogo</h2>
+        </div>
         
         <button class="menu-btn" onclick="toggleMenu(event)">☰</button>
         
@@ -413,10 +521,10 @@
     </div>
 
     <div class="modal" id="infoModal">
-        <div class="modal-content">
-            <h3 id="infoModalTitle">Detalhes da Peça</h3>
+        <div class="modal-content" style="overflow-y: auto; padding: 1.2rem;">
+            <h3 id="infoModalTitle" style="font-size:1.1rem; margin-bottom:0.5rem;">Detalhes da Peça</h3>
             
-            <div class="info-popup-section" id="infoObsContainer">
+            <div class="info-popup-section" id="infoObsContainer" style="margin-bottom:0.5rem;">
                 <strong>Observação:</strong>
                 <p id="infoObservacaoText" style="margin-top: 4px; font-size: 0.95rem; color: var(--text);"></p>
             </div>
@@ -426,15 +534,15 @@
                 <p id="infoMetaText" style="margin-top: 4px; font-size: 0.85rem; color: var(--text-secondary);"></p>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
-                <button class="btn btn-secondary" onclick="closeModal('infoModal')">Fechar</button>
+            <div style="display: flex; justify-content: center; margin-top: 1rem;">
+                <button class="btn btn-secondary" style="width:100%; padding:0.75rem;" onclick="closeModal('infoModal')">Fechar</button>
             </div>
         </div>
     </div>
 
     <div class="modal" id="searchModal">
-        <div class="modal-content">
-            <h3>Buscar Peça</h3>
+        <div class="modal-content" style="overflow-y: auto; padding: 1.2rem;">
+            <h3 style="font-size:1.1rem; margin-bottom:0.5rem;">Buscar Peça</h3>
             <div class="form-group">
                 <label>Buscar por:</label>
                 <select id="searchType">
@@ -442,60 +550,81 @@
                     <option value="codigo">Código do Produto</option>
                 </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" style="margin-top:0.5rem;">
                 <input type="text" id="searchInput" placeholder="Comece a digitar..." oninput="handleSearchInput()">
                 <div class="search-results" id="searchResults" style="display: none;"></div>
             </div>
-            <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-                <button class="btn btn-secondary" onclick="closeModal('searchModal')">Fechar</button>
+            <div style="display: flex; justify-content: center; margin-top: 1rem;">
+                <button class="btn btn-secondary" style="width:100%; padding:0.75rem;" onclick="closeModal('searchModal')">Fechar</button>
             </div>
         </div>
     </div>
 
     <div class="modal" id="cadastroModal">
         <div class="modal-content">
-            <h3 id="modalTitle">Cadastrar Nova Peça</h3>
-            <form id="cadastroForm" onsubmit="salvarPeca(event)">
+            
+            <div class="modal-fixed-header">
+                <h3 id="modalTitle" style="font-size: 1.1rem;">Cadastrar Nova Peça</h3>
+                <div class="form-tabs">
+                    <button type="button" class="form-tab-btn active" onclick="switchTab('tab-peca')">Peça</button>
+                    <button type="button" class="form-tab-btn" onclick="switchTab('tab-imagens')">Imagens</button>
+                    <button type="button" class="form-tab-btn" onclick="switchTab('tab-medidas')">Medidas</button>
+                    <button type="button" class="form-tab-btn" onclick="switchTab('tab-informacoes')">Informações</button>
+                </div>
+            </div>
+
+            <form id="cadastroForm" onsubmit="salvarPeca(event)" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
                 <input type="hidden" id="formId">
 
-                <div class="form-group">
-                    <label>Código da Empresa (Único) *</label>
-                    <input type="text" id="formCodigo" required>
-                </div>
-                <div class="form-group">
-                    <label>Nome do Produto *</label>
-                    <input type="text" id="formNome" required>
-                </div>
-                <div class="form-group">
-                    <label>Quem está alterando/cadastrando? *</label>
-                    <input type="text" id="formResponsavel" required>
+                <div class="cadastro-form-body">
+                    
+                    <div class="form-tab-content active" id="tab-peca">
+                        <div class="form-group">
+                            <label>Código da Empresa (Único) *</label>
+                            <input type="text" id="formCodigo" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nome do Produto *</label>
+                            <input type="text" id="formNome" required>
+                        </div>
+                    </div>
+
+                    <div class="form-tab-content" id="tab-imagens">
+                        <div class="form-group" id="formFotosAtuaisContainer" style="display: none;">
+                            <label>Fotos Atuais Cadastradas</label>
+                            <div class="fotos-atuais-grid" id="fotosAtuaisGrid"></div>
+                        </div>
+                        <div class="form-group">
+                            <label id="labelFotos">Adicionar Fotos (1 a 6 imagens) *</label>
+                            <input type="file" id="formFotos" accept="image/*" multiple onchange="validarFotos(this)">
+                            <small id="ajudaFotos" style="color: var(--text-secondary); font-size:0.75rem;">Selecione arquivos caso queira incluir novas fotos.</small>
+                        </div>
+                    </div>
+
+                    <div class="form-tab-content" id="tab-medidas">
+                        <div class="form-group">
+                            <label>Medidas do Produto</label>
+                            <div id="formMedidasLista" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+                            <button type="button" class="btn btn-secondary" style="margin-top: 0.5rem; padding:0.6rem; font-size:0.9rem;" onclick="adicionarLinhaMedida()">＋ Adicionar Medida</button>
+                        </div>
+                    </div>
+
+                    <div class="form-tab-content" id="tab-informacoes">
+                        <div class="form-group">
+                            <label>Quem está alterando/cadastrando? *</label>
+                            <input type="text" id="formResponsavel" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Observações (Máx 200 caracteres)</label>
+                            <textarea id="formObservacao" maxlength="200" rows="4"></textarea>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="form-group" id="formFotosAtuaisContainer" style="display: none;">
-                    <label>Fotos Atuais Cadastradas</label>
-                    <div class="fotos-atuais-grid" id="fotosAtuaisGrid"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label id="labelFotos">Adicionar Fotos (1 a 6 imagens) *</label>
-                    <input type="file" id="formFotos" accept="image/*" multiple onchange="validarFotos(this)">
-                    <small id="ajudaFotos" style="color: var(--text-secondary);">Selecione arquivos caso queira incluir novas fotos.</small>
-                </div>
-
-                <div class="form-group">
-                    <label>Medidas do Produto</label>
-                    <div id="formMedidasLista" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
-                    <button type="button" class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="adicionarLinhaMedida()">＋ Adicionar Medida</button>
-                </div>
-
-                <div class="form-group">
-                    <label>Observações (Máx 200 caracteres)</label>
-                    <textarea id="formObservacao" maxlength="200" rows="3"></textarea>
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+                <div class="modal-footer-buttons">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('cadastroModal')">Cancelar</button>
-                    <button type="submit" class="btn" id="btnSalvar">Salvar Peça</button>
+                    <button type="submit" class="btn" id="btnSalvar">Salvar</button>
                 </div>
             </form>
         </div>
@@ -530,7 +659,7 @@
         let currentIndex = 0;
         let currentPhotoIndex = 0;
         let nomesMedidasExistentes = [];
-        let fotosTemporariasEdicao = []; // Guarda as fotos salvas durante o processo de edição
+        let fotosTemporariasEdicao = [];
 
         function toggleMenu(e) {
             e.stopPropagation();
@@ -547,6 +676,19 @@
             else if (opcao === 'novo') openCadastroModal();
             else if (opcao === 'editar') prepararEdicao();
             else if (opcao === 'excluir') deletarPecaAtual();
+        }
+
+        function switchTab(tabId) {
+            const tabButtons = document.querySelectorAll('.form-tab-btn');
+            const tabContents = document.querySelectorAll('.form-tab-content');
+
+            tabButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('onclick').includes(tabId));
+            });
+
+            tabContents.forEach(content => {
+                content.classList.toggle('active', content.id === tabId);
+            });
         }
 
         // GESTOS (SWIPE)
@@ -731,19 +873,17 @@
             const observacao = document.getElementById('formObservacao').value.substring(0, 200);
             const inputFotos = document.getElementById('formFotos').files;
 
-            // Começa unindo as fotos antigas que NÃO foram excluídas pelo painel
             let fotosFinais = [...fotosTemporariasEdicao];
             
-            // Se houver novas fotos escolhidas no input de arquivo, transforma e junta
             if (inputFotos.length > 0) {
                 const fotosPromessas = Array.from(inputFotos).map(file => fileToBase64(file));
                 const novasFotosBase64 = await Promise.all(fotosPromessas);
                 fotosFinais = fotosFinais.concat(novasFotosBase64);
             }
 
-            // Validação de segurança: precisa ter no mínimo 1 foto ativa
             if (fotosFinais.length === 0) {
-                alert("Por favor, a peça precisa ter pelo menos 1 foto associada.");
+                switchTab('tab-imagens');
+                alert("Por favor, adicione pelo menos 1 foto na aba 'Imagens'.");
                 return;
             }
 
@@ -751,12 +891,19 @@
             const rows = document.querySelectorAll('.measurement-row-form');
             const txNomes = db.transaction("nomesMedidas", "readwrite");
             const storeNomes = txNomes.objectStore("nomesMedidas");
+            
+            let erroMedidaVazia = false;
 
             rows.forEach(row => {
                 const selectNome = row.querySelector('.medida-nome-select').value;
                 const inputNovoNome = row.querySelector('.medida-nome-novo').value.trim();
                 const valor = row.querySelector('.medida-valor').value;
                 const unidade = row.querySelector('.medida-unidade').value;
+
+                if (selectNome === "") {
+                    erroMedidaVazia = true;
+                    return;
+                }
 
                 let nomeFinal = selectNome === "NOVA" ? inputNovoNome : selectNome;
                 
@@ -767,6 +914,12 @@
                     }
                 }
             });
+
+            if (erroMedidaVazia) {
+                switchTab('tab-medidas');
+                alert("Por favor, selecione um tipo válido de Medida ou crie uma nova opção. Não é permitido salvar com o campo padrão.");
+                return;
+            }
 
             const dadosPeca = {
                 codigo,
@@ -826,7 +979,7 @@
             const peca = pecas[currentIndex];
 
             document.getElementById('modalTitle').innerText = "Editar Dados da Peça";
-            document.getElementById('btnSalvar').innerText = "Atualizar Peça";
+            document.getElementById('btnSalvar').innerText = "Atualizar";
             document.getElementById('formId').value = peca.id;
             document.getElementById('formCodigo').value = peca.codigo;
             document.getElementById('formNome').value = peca.nome;
@@ -834,9 +987,8 @@
             document.getElementById('formObservacao').value = peca.observacao || "";
             
             document.getElementById('formFotos').required = false;
-            document.getElementById('labelFotos').innerText = "Adicionar Novas Fotos (Opcional)";
+            document.getElementById('labelFotos').innerText = "Adicionar Novas Fotos";
 
-            // Clona o array original de fotos para controle temporário de remoção na tela
             fotosTemporariasEdicao = [...(peca.fotos || [])];
             renderizarPainelFotosEdicao();
 
@@ -851,10 +1003,10 @@
                 adicionarLinhaMedida();
             }
 
+            switchTab('tab-peca');
             document.getElementById('cadastroModal').classList.add('active');
         }
 
-        // Reconstrói as miniaturas das fotos no painel de edição
         function renderizarPainelFotosEdicao() {
             const containerPainel = document.getElementById('formFotosAtuaisContainer');
             const grid = document.getElementById('fotosAtuaisGrid');
@@ -876,11 +1028,9 @@
             }
         }
 
-        // Remove a foto do array temporário ao clicar em remover
         function removerFotoEdicao(index) {
             fotosTemporariasEdicao.splice(index, 1);
             renderizarPainelFotosEdicao();
-            // Reseta o input de arquivo para recalcular a validação se necessário
             document.getElementById('formFotos').value = '';
         }
 
@@ -893,7 +1043,7 @@
             const row = document.createElement('div');
             row.className = 'measurement-row-form';
 
-            let opcoes = `<option value="">Escolha...</option>`;
+            let opcoes = `<option value="">Medida</option>`;
             let nomeExisteNoHistorico = false;
 
             nomesMedidasExistentes.forEach(n => {
@@ -915,12 +1065,18 @@
                 <select class="medida-nome-select" onchange="toggleNovoCampoMedida(this)">
                     ${opcoes}
                 </select>
-                <input type="text" class="medida-nome-novo" placeholder="Qual o Nome?" value="${inputNovoValor}" style="${styleInputNovo}">
+                <input type="text" class="medida-nome-novo" placeholder="Qual?" value="${inputNovoValor}" style="${styleInputNovo}">
                 <input type="text" class="medida-valor" placeholder="Valor" value="${valor}" required>
                 <select class="medida-unidade">
                     <option value="mm" ${unidade === 'mm' ? 'selected' : ''}>mm</option>
+                    <option value="mm²" ${unidade === 'mm²' ? 'selected' : ''}>mm²</option>
+                    <option value="mm³" ${unidade === 'mm³' ? 'selected' : ''}>mm³</option>
                     <option value="cm" ${unidade === 'cm' ? 'selected' : ''}>cm</option>
+                    <option value="cm²" ${unidade === 'cm²' ? 'selected' : ''}>cm²</option>
+                    <option value="cm³" ${unidade === 'cm³' ? 'selected' : ''}>cm³</option>
                     <option value="pol" ${unidade === 'pol' ? 'selected' : ''}>pol</option>
+                    <option value="R" ${unidade === 'R' ? 'selected' : ''}>R</option>
+                    <option value="Ø" ${unidade === 'Ø' ? 'selected' : ''}>Ø</option>
                 </select>
                 <button type="button" class="btn btn-secondary" onclick="this.parentElement.remove()" style="padding: 0.4rem 0.6rem; background:#fee2e2; color:#ef4444;">✕</button>
             `;
@@ -941,7 +1097,7 @@
 
         function openCadastroModal() {
             document.getElementById('modalTitle').innerText = "Cadastrar Nova Peça";
-            document.getElementById('btnSalvar').innerText = "Salvar Peça";
+            document.getElementById('btnSalvar').innerText = "Salvar";
             document.getElementById('formId').value = "";
             document.getElementById('cadastroForm').reset();
             document.getElementById('formFotos').required = true;
@@ -951,6 +1107,7 @@
             
             document.getElementById('formMedidasLista').innerHTML = '';
             adicionarLinhaMedida();
+            switchTab('tab-peca');
             document.getElementById('cadastroModal').classList.add('active');
         }
 
