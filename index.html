@@ -444,11 +444,10 @@
             box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
         }
 
-        /* CORPO DO FORMULÁRIO COM MARGENS INTERNAS AMPLIADAS (NOVO E EDITAR) */
         .cadastro-form-body {
             flex: 1;
             overflow-y: auto;
-            padding: 1.4rem 1.4rem; /* Margens internas aprimoradas */
+            padding: 1.4rem 1.4rem;
             display: flex;
             flex-direction: column;
         }
@@ -460,7 +459,7 @@
         .form-tab-content.active {
             display: flex;
             flex-direction: column;
-            gap: 1.2rem; /* Mais respiro entre os grupos de input */
+            gap: 1.2rem;
         }
 
         .form-group {
@@ -605,6 +604,7 @@
             <button class="menu-item" onclick="execMenu('buscar')">🔍 Buscar</button>
             <button class="menu-item" onclick="execMenu('novo')">＋ Novo Registro</button>
             <div id="menuPecaActions" style="display: none; flex-direction: column;">
+                <button class="menu-item" onclick="execMenu('compartilhar')">📤 Compartilhar</button>
                 <button class="menu-item" onclick="execMenu('editar')">✏️ Editar Peça</button>
                 <button class="menu-item danger" onclick="execMenu('excluir')">🗑️ Excluir Peça</button>
             </div>
@@ -783,6 +783,7 @@
             document.getElementById('menuDropdown').classList.remove('active');
             if (opcao === 'buscar') openSearchModal();
             else if (opcao === 'novo') openCadastroModal();
+            else if (opcao === 'compartilhar') compartilharPecaAtual();
             else if (opcao === 'editar') prepararEdicao();
             else if (opcao === 'excluir') deletarPecaAtual();
         }
@@ -794,7 +795,7 @@
             tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
         }
 
-        // GESTOS TOUCH (Horizontal muda foto / Vertical muda peça)
+        // GESTOS TOUCH
         let touchStartX = 0;
         let touchStartY = 0;
         const viewerElement = document.getElementById('imageViewer');
@@ -856,6 +857,45 @@
                 tr.innerHTML = `<td>${m.nome}</td><td>${m.valor}</td><td>${m.unidade}</td>`;
                 tbody.appendChild(tr);
             });
+        }
+
+        // LÓGICA DE COMPARTILHAMENTO DE INFORMAÇÕES POR TEXTO (FORMATO WHATSAPP)
+        function compartilharPecaAtual() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+
+            // Montagem da mensagem estruturada com marcação de negrito nativa do WhatsApp (*)
+            let msg = `*Código do Produto:* ${peca.codigo}\n`;
+            msg += `*Nome do Produto:* ${peca.nome}\n\n`;
+
+            if (peca.medidas && peca.medidas.length > 0) {
+                msg += `*--- MEDIDAS ---*\n`;
+                peca.medidas.forEach(m => {
+                    msg += `*${m.nome}:* ${m.valor} ${m.unidade}\n`;
+                });
+                msg += `\n`;
+            }
+
+            if (peca.observacao && peca.observacao.trim() !== "") {
+                msg += `*Observações:* ${peca.observacao}\n\n`;
+            }
+
+            msg += `_Enviado via Catálogo Técnico_`;
+
+            // Tenta usar o compartilhamento nativo do sistema operacional (celulares)
+            if (navigator.share) {
+                navigator.share({
+                    title: `Dados do Produto - ${peca.codigo}`,
+                    text: msg
+                }).catch(err => console.log("Compartilhamento cancelado ou erro: ", err));
+            } else {
+                // Alternativa (Fallback) para PCs ou navegadores sem suporte: Copia o texto para a área de transferência
+                navigator.clipboard.writeText(msg).then(() => {
+                    alert("Dados copiados para a área de transferência! Prontos para colar (Ctrl+V) em qualquer mensagem.");
+                }).catch(err => {
+                    alert("Não foi possível compartilhar ou copiar os dados automaticamente.");
+                });
+            }
         }
 
         function openInfoModal() {
@@ -972,7 +1012,7 @@
 
             if (nomesMedidasExistentes.includes(nomeFormatado)) {
                 alert("Esta medida já existe na lista!");
-                selectElement.value = nameFormatado;
+                selectElement.value = nomeFormatado;
                 return;
             }
 
@@ -1061,7 +1101,7 @@
             let request = id ? storePeca.put({...dadosPeca, id: parseInt(id)}) : storePeca.add(dadosPeca);
 
             request.onsuccess = (evt) => {
-                alert(id ? "Peça atualizada!" : "Peça cadastrada!");
+                alert(id ? "Peça updated!" : "Peça cadastrada!");
                 closeModal('cadastroModal');
                 const idFoco = id ? parseInt(id) : evt.target.result;
                 carregarPecas(idFoco);
@@ -1187,14 +1227,12 @@
 
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-        // BUSCA HÍBRIDA: Procura tanto por Nome quanto por Código ao mesmo tempo
         function handleSearchInput() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const resultsContainer = document.getElementById('searchResults');
             resultsContainer.innerHTML = '';
             if (!query) { resultsContainer.style.display = 'none'; return; }
 
-            // Filtra comparando a query digitada com o nome OU com o código do produto
             const filtrados = pecas.filter(p => 
                 p.nome.toLowerCase().includes(query) || 
                 p.codigo.toLowerCase().includes(query)
