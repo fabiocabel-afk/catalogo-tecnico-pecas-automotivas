@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Catálogo Técnico PWA</title>
+    <link rel="manifest" href="./manifest.json">
     <style>
         :root {
             --primary: #2563eb;
@@ -31,7 +32,6 @@
             flex-direction: column;
         }
 
-        /* Header */
         header {
             background: var(--surface);
             padding: 1rem;
@@ -57,7 +57,6 @@
             color: var(--text);
         }
 
-        /* Container Principal de Navegação por Gestos */
         #app-container {
             flex: 1;
             display: flex;
@@ -66,7 +65,6 @@
             position: relative;
         }
 
-        /* Área do Viewer de Imagens */
         .image-viewer {
             height: 40vh;
             background: #000;
@@ -105,7 +103,6 @@
             text-align: center;
         }
 
-        /* Indicador de bolinhas das fotos */
         .dots-container {
             position: absolute;
             bottom: 10px;
@@ -124,7 +121,6 @@
             background: #fff;
         }
 
-        /* Detalhes da Peça (Informações básicas flutuando ou fixas) */
         .piece-info {
             background: var(--surface);
             padding: 1rem;
@@ -142,7 +138,6 @@
             margin-top: 0.25rem;
         }
 
-        /* Área da Tabela de Medidas com Rolagem Interna */
         .measurements-container {
             flex: 1;
             background: var(--surface);
@@ -182,7 +177,6 @@
             border-top: 1px solid var(--border);
         }
 
-        /* Modais / Popups */
         .modal {
             position: fixed;
             top: 0;
@@ -231,7 +225,6 @@
             width: 100%;
         }
 
-        /* Busca suspensa dinâmica */
         .search-results {
             border: 1px solid var(--border);
             border-top: none;
@@ -270,8 +263,7 @@
 
     <div id="app-container">
         <div class="image-viewer" id="imageViewer">
-            <div class="image-slider" id="imageSlider">
-                </div>
+            <div class="image-slider" id="imageSlider"></div>
             <div class="dots-container" id="dotsContainer"></div>
         </div>
 
@@ -290,8 +282,7 @@
                         <th>Unidade</th>
                     </tr>
                 </thead>
-                <tbody id="measurementsTableBody">
-                    </tbody>
+                <tbody id="measurementsTableBody"></tbody>
             </table>
         </div>
 
@@ -324,4 +315,352 @@
     <div class="modal" id="cadastroModal">
         <div class="modal-content">
             <h3>Cadastrar Nova Peça</h3>
-            <form id="cadastroForm" onsubmit="sal
+            <form id="cadastroForm" onsubmit="salvarPeca(event)">
+                <div class="form-group">
+                    <label>Código da Empresa (Único) *</label>
+                    <input type="text" id="formCodigo" required>
+                </div>
+                <div class="form-group">
+                    <label>Nome do Produto *</label>
+                    <input type="text" id="formNome" required>
+                </div>
+                <div class="form-group">
+                    <label>Quem está cadastrando? *</label>
+                    <input type="text" id="formResponsavel" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Fotos (1 a 6 imagens) *</label>
+                    <input type="file" id="formFotos" accept="image/*" multiple required onchange="validarFotos(this)">
+                </div>
+
+                <div class="form-group">
+                    <label>Medidas do Produto</label>
+                    <div id="formMedidasLista" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+                    <button type="button" class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="adicionarLinhaMedida()">＋ Adicionar Medida</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Observações (Máx 200 caracteres)</label>
+                    <textarea id="formObservacao" maxlength="200" rows="3"></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('cadastroModal')">Cancelar</button>
+                    <button type="submit" class="btn">Salvar Peça</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // REGISTRO DO SERVICE WORKER (Para funcionamento PWA / Offline)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(() => console.log('Service Worker registrado com sucesso!'))
+                    .catch(err => console.error('Falha ao registrar Service Worker:', err));
+            });
+        }
+
+        // BANCO DE DADOS LOCAL (IndexedDB)
+        let db;
+        const dbName = "CatalogoTecnicoDB";
+        
+        function initDB() {
+            const request = indexedDB.open(dbName, 1);
+            request.onerror = (e) => console.error("Erro no banco:", e);
+            request.onsuccess = (e) => {
+                db = e.target.result;
+                carregarPecas();
+            };
+            request.onupgradeneeded = (e) => {
+                db = e.target.result;
+                const store = db.createObjectStore("pecas", { keyPath: "id", autoIncrement: true });
+                store.createIndex("codigo", "codigo", { unique: true });
+                db.createObjectStore("nomesMedidas", { keyPath: "nome" });
+            };
+        }
+
+        let pecas = [];
+        let currentIndex = 0;
+        let currentPhotoIndex = 0;
+        let nomesMedidasExistentes = [];
+
+        // GESTOS (SWIPE)
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const container = document.getElementById('app-container');
+
+        container.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: true});
+
+        container.addEventListener('touchend', e => {
+            const diffX = e.changedTouches[0].screenX - touchStartX;
+            const diffY = e.changedTouches[0].screenY - touchStartY;
+            
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (Math.abs(diffX) > 50) {
+                    if (diffX > 0) mudarFoto(-1);
+                    else mudarFoto(1);
+                }
+            } else {
+                if (Math.abs(diffY) > 50) {
+                    if (diffY > 0) mudarPeca(-1);
+                    else mudarPeca(1);
+                }
+            }
+        }, {passive: true});
+
+        function exibirPecaAtual() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+            currentPhotoIndex = 0;
+
+            document.getElementById('viewNome').innerText = peca.nome;
+            document.getElementById('viewCodigo').innerText = `Código: ${peca.codigo}`;
+            document.getElementById('viewObservacao').innerText = peca.observacao || "Sem observações.";
+            document.getElementById('viewMeta').innerText = `Cadastrado por: ${peca.responsavel} em ${peca.dataHora}`;
+
+            atualizarSliderFotos(peca.fotos);
+
+            const tbody = document.getElementById('measurementsTableBody');
+            tbody.innerHTML = '';
+            peca.medidas.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${m.nome}</td><td>${m.valor}</td><td>${m.unidade}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function atualizarSliderFotos(fotos) {
+            const slider = document.getElementById('imageSlider');
+            const dotsContainer = document.getElementById('dotsContainer');
+            slider.innerHTML = '';
+            dotsContainer.innerHTML = '';
+            slider.style.transform = `translateX(0%)`;
+
+            if(!fotos || fotos.length === 0) {
+                slider.innerHTML = `<div class="slide"><div class="no-image">Nenhuma imagem disponível</div></div>`;
+                return;
+            }
+
+            fotos.forEach((fotoBase64, idx) => {
+                const slide = document.createElement('div');
+                slide.className = 'slide';
+                slide.innerHTML = `<img src="${fotoBase64}" alt="Foto ${idx+1}">`;
+                slider.appendChild(slide);
+
+                const dot = document.createElement('div');
+                dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        function mudarFoto(direcao) {
+            if (pecas.length === 0) return;
+            const fotos = pecas[currentIndex].fotos;
+            if (!fotos || fotos.length <= 1) return;
+
+            currentPhotoIndex += direcao;
+            if (currentPhotoIndex < 0) currentPhotoIndex = 0;
+            if (currentPhotoIndex >= fotos.length) currentPhotoIndex = fotos.length - 1;
+
+            document.getElementById('imageSlider').style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
+            
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === currentPhotoIndex);
+            });
+        }
+
+        function mudarPeca(direcao) {
+            if (pecas.length <= 1) return;
+            currentIndex += direcao;
+            if (currentIndex < 0) currentIndex = 0;
+            if (currentIndex >= pecas.length) currentIndex = pecas.length - 1;
+            exibirPecaAtual();
+        }
+
+        function carregarPecas() {
+            const transaction = db.transaction(["pecas", "nomesMedidas"], "readonly");
+            
+            transaction.objectStore("pecas").getAll().onsuccess = (e) => {
+                pecas = e.target.result;
+                if (pecas.length > 0) exibirPecaAtual();
+            };
+
+            transaction.objectStore("nomesMedidas").getAll().onsuccess = (e) => {
+                nomesMedidasExistentes = e.target.result.map(item => item.nome);
+            };
+        }
+
+        function validarFotos(input) {
+            if (input.files.length > 6) {
+                alert("Você só pode selecionar no máximo 6 fotos.");
+                input.value = "";
+            }
+        }
+
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        async function salvarPeca(e) {
+            e.preventDefault();
+            
+            const codigo = document.getElementById('formCodigo').value.trim();
+            const nome = document.getElementById('formNome').value.trim();
+            const responsavel = document.getElementById('formResponsavel').value.trim();
+            const observacao = document.getElementById('formObservacao').value.substring(0, 200);
+            const inputFotos = document.getElementById('formFotos').files;
+
+            if (inputFotos.length < 1 || inputFotos.length > 6) {
+                alert("Selecione entre 1 e 6 imagens.");
+                return;
+            }
+
+            const fotosPromessas = Array.from(inputFotos).map(file => fileToBase64(file));
+            const fotos = await Promise.all(fotosPromessas);
+
+            const medidas = [];
+            const rows = document.querySelectorAll('.measurement-row-form');
+            const txNomes = db.transaction("nomesMedidas", "readwrite");
+            const storeNomes = txNomes.objectStore("nomesMedidas");
+
+            rows.forEach(row => {
+                const selectNome = row.querySelector('.medida-nome-select').value;
+                const inputNovoNome = row.querySelector('.medida-nome-novo').value.trim();
+                const valor = row.querySelector('.medida-valor').value;
+                const unidade = row.querySelector('.medida-unidade').value;
+
+                let nomeFinal = selectNome === "NOVA" ? inputNovoNome : selectNome;
+                
+                if (nomeFinal && valor) {
+                    medidas.push({ nome: nomeFinal, valor, unidade });
+                    if (selectNome === "NOVA") {
+                        storeNomes.put({ nome: nomeFinal });
+                    }
+                }
+            });
+
+            const novaPeca = {
+                codigo,
+                nome,
+                responsavel,
+                observacao,
+                fotos,
+                medidas,
+                dataHora: new Date().toLocaleString('pt-BR')
+            };
+
+            const txPeca = db.transaction("pecas", "readwrite");
+            const request = txPeca.objectStore("pecas").add(novaPeca);
+
+            request.onsuccess = () => {
+                alert("Peça cadastrada com sucesso!");
+                closeModal('cadastroModal');
+                document.getElementById('cadastroForm').reset();
+                carregarPecas();
+            };
+
+            request.onerror = () => {
+                alert("Erro ao salvar! Verifique se o código da empresa já existe.");
+            };
+        }
+
+        function adicionarLinhaMedida() {
+            const container = document.getElementById('formMedidasLista');
+            const row = document.createElement('div');
+            row.className = 'measurement-row-form';
+
+            let opcoes = `<option value="">Escolha...</option>`;
+            nomesMedidasExistentes.forEach(n => {
+                opcoes += `<option value="${n}">${n}</option>`;
+            });
+            opcoes += `<option value="NOVA" style="color: blue; font-weight: bold;">[+ Nova Opção]</option>`;
+
+            row.innerHTML = `
+                <select class="medida-nome-select" onchange="toggleNovoCampoMedida(this)">
+                    ${opcoes}
+                </select>
+                <input type="text" class="medida-nome-novo" placeholder="Qual o Nome?" style="display:none;">
+                <input type="text" class="medida-valor" placeholder="Valor" required>
+                <select class="medida-unidade">
+                    <option value="mm">mm</option>
+                    <option value="cm">cm</option>
+                    <option value="pol">pol</option>
+                </select>
+                <button type="button" class="btn btn-secondary" onclick="this.parentElement.remove()" style="padding: 0.4rem 0.6rem; background:#fee2e2; color:#ef4444;">✕</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function toggleNovoCampoMedida(select) {
+            const inputNovo = select.nextElementSibling;
+            if (select.value === "NOVA") {
+                inputNovo.style.display = "block";
+                inputNovo.required = true;
+            } else {
+                inputNovo.style.display = "none";
+                inputNovo.required = false;
+            }
+        }
+
+        function openCadastroModal() {
+            document.getElementById('formMedidasLista').innerHTML = '';
+            adicionarLinhaMedida();
+            document.getElementById('cadastroModal').classList.add('active');
+        }
+
+        function openSearchModal() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchModal').classList.add('active');
+        }
+
+        // Função corrigida para fechar corretamente os modais
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function handleSearchInput() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const type = document.getElementById('searchType').value;
+            const resultsContainer = document.getElementById('searchResults');
+            
+            resultsContainer.innerHTML = '';
+            if (!query) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
+
+            const filtrados = pecas.filter(p => p[type].toLowerCase().includes(query));
+
+            if (filtrados.length === 0) {
+                resultsContainer.innerHTML = `<div class="search-item" style="color: var(--text-secondary)">Nenhuma peça encontrada</div>`;
+            } else {
+                filtrados.forEach(p => {
+                    const item = document.createElement('div');
+                    item.className = 'search-item';
+                    item.innerHTML = `<strong>${p.codigo}</strong> - ${p.nome}`;
+                    item.onclick = () => {
+                        currentIndex = pecas.findIndex(item => item.id === p.id);
+                        exibirPecaAtual();
+                        closeModal('searchModal');
+                    };
+                    resultsContainer.appendChild(item);
+                });
+            }
+            resultsContainer.style.display = 'block';
+        }
+
+        window.onload = initDB;
+    </script>
+</body>
+</html>
