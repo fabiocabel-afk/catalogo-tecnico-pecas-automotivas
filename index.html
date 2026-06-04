@@ -131,10 +131,9 @@
             padding-top: 0.4rem;
         }
 
-        /* 1. VISUALIZADOR DE IMAGENS ATUALIZADO (FUNDO ESCURO E CONTROLOS) */
         .image-viewer {
             height: 38vh;
-            background: #1e293b; /* Retornado para a cor escura para destacar o produto */
+            background: #1e293b;
             position: relative;
             overflow: hidden;
             display: flex;
@@ -160,7 +159,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            padding: 0.5rem 0.5rem 2.2rem 0.5rem; /* Margem extra abaixo para não sobrepor os botões */
+            padding: 0.5rem 0.5rem 2.2rem 0.5rem;
         }
 
         .slide img {
@@ -175,7 +174,6 @@
             padding-bottom: 2rem;
         }
 
-        /* Indicador de páginas (Bolinhas das fotos) */
         .dots-container {
             position: absolute;
             bottom: 2.5rem;
@@ -201,7 +199,6 @@
             border-radius: 3px;
         }
 
-        /* BARRA INFERIOR DE NAVEGAÇÃO ENTRE PEÇAS */
         .piece-navigator-bar {
             position: absolute;
             bottom: 0;
@@ -241,7 +238,6 @@
             letter-spacing: 0.05em;
         }
 
-        /* SETAS FLUTUANTES NAS IMAGENS (SÓ APARECEM EM DESKTOP NO HOVER) */
         .img-arrow-btn {
             position: absolute;
             top: 50%;
@@ -258,7 +254,7 @@
             cursor: pointer;
             z-index: 4;
             border-radius: 6px;
-            opacity: 0; /* Escondido por padrão */
+            opacity: 0;
             transition: opacity 0.2s, background 0.2s;
         }
 
@@ -269,14 +265,12 @@
             background: rgba(15, 23, 42, 0.8);
         }
 
-        /* Mostra as setas das imagens no hover do container (Dispositivos com ponteiro/rato) */
         @media (hover: hover) {
             .image-viewer:hover .img-arrow-btn {
                 opacity: 1;
             }
         }
 
-        /* 2. CONTAINER DE INFORMAÇÕES */
         .piece-info-card {
             background: var(--surface);
             margin: 0.4rem 0.8rem;
@@ -330,7 +324,6 @@
             color: var(--text-secondary);
         }
 
-        /* 3. CONTAINER DA TABELA */
         .measurements-card-container {
             flex: 1;
             background: var(--surface);
@@ -378,7 +371,6 @@
             background: #f8fafc;
         }
 
-        /* MODAIS */
         .modal {
             position: fixed;
             top: 0;
@@ -423,35 +415,40 @@
 
         .form-tabs {
             display: flex;
-            border-bottom: 2px solid var(--border);
-            margin-top: 0.6rem;
+            gap: 0.5rem;
+            margin-top: 0.8rem;
             overflow-x: auto;
             white-space: nowrap;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
         }
 
         .form-tab-btn {
             flex: 1;
-            padding: 0.6rem 0.5rem;
-            background: none;
-            border: none;
+            padding: 0.5rem 0.8rem;
+            background: #f1f5f9;
+            border: 1px solid var(--border);
             font-size: 0.85rem;
             font-weight: 600;
             color: var(--text-secondary);
             cursor: pointer;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
+            border-radius: 20px;
             text-align: center;
+            transition: all 0.2s ease;
         }
 
         .form-tab-btn.active {
-            color: var(--primary);
-            border-bottom: 2px solid var(--primary);
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
         }
 
+        /* CORPO DO FORMULÁRIO COM MARGENS INTERNAS AMPLIADAS (NOVO E EDITAR) */
         .cadastro-form-body {
             flex: 1;
             overflow-y: auto;
-            padding: 1rem 1.2rem;
+            padding: 1.4rem 1.4rem; /* Margens internas aprimoradas */
             display: flex;
             flex-direction: column;
         }
@@ -463,13 +460,13 @@
         .form-tab-content.active {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.2rem; /* Mais respiro entre os grupos de input */
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 0.3rem;
+            gap: 0.4rem;
         }
 
         .form-group label {
@@ -491,17 +488,23 @@
         .search-results {
             border: 1px solid var(--border);
             border-top: none;
-            max-height: 150px;
+            max-height: 200px;
             overflow-y: auto;
             border-radius: 0 0 6px 6px;
             background: white;
+            margin-top: 2px;
         }
 
         .search-item {
-            padding: 0.6rem;
+            padding: 0.75rem;
             cursor: pointer;
             border-bottom: 1px solid var(--border);
             font-size: 0.9rem;
+            transition: background 0.15s;
+        }
+
+        .search-item:last-child {
+            border-bottom: none;
         }
 
         .search-item:hover {
@@ -614,7 +617,6 @@
             <button class="img-arrow-btn right" onclick="mudarFoto(1)" title="Próxima Foto">›</button>
 
             <div class="image-slider" id="imageSlider"></div>
-            
             <div class="dots-container" id="dotsContainer"></div>
 
             <div class="piece-navigator-bar">
@@ -664,20 +666,13 @@
     </div>
 
     <div class="modal" id="searchModal">
-        <div class="modal-content" style="overflow-y: auto; padding: 1.2rem;">
-            <h3 style="font-size:1.1rem; margin-bottom:0.5rem;">Buscar Peça</h3>
+        <div class="modal-content" style="overflow-y: auto; padding: 1.4rem;">
+            <h3 style="font-size:1.1rem; margin-bottom:0.8rem;">Buscar Peça</h3>
             <div class="form-group">
-                <label>Buscar por:</label>
-                <select id="searchType">
-                    <option value="nome">Nome do Produto</option>
-                    <option value="codigo">Código do Produto</option>
-                </select>
-            </div>
-            <div class="form-group" style="margin-top:0.5rem;">
-                <input type="text" id="searchInput" placeholder="Comece a digitar..." oninput="handleSearchInput()">
+                <input type="text" id="searchInput" placeholder="Comece a digitar (nome ou código)..." oninput="handleSearchInput()">
                 <div class="search-results" id="searchResults" style="display: none;"></div>
             </div>
-            <div style="display: flex; justify-content: center; margin-top: 1rem;">
+            <div style="display: flex; justify-content: center; margin-top: 1.2rem;">
                 <button class="btn-secondary" style="width:100%; padding:0.75rem; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="closeModal('searchModal')">Fechar</button>
             </div>
         </div>
@@ -744,7 +739,7 @@
         </div>
     </div>
 
-<script>
+    <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
@@ -799,7 +794,7 @@
             tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
         }
 
-        // SISTEMA DE GESTOS TOUCH (Swipe Horizontal e Vertical)
+        // GESTOS TOUCH (Horizontal muda foto / Vertical muda peça)
         let touchStartX = 0;
         let touchStartY = 0;
         const viewerElement = document.getElementById('imageViewer');
@@ -813,18 +808,15 @@
             const diffX = e.changedTouches[0].screenX - touchStartX;
             const diffY = e.changedTouches[0].screenY - touchStartY;
             
-            // Verifica se o movimento predominante foi Horizontal ou Vertical
             if (Math.abs(diffX) > Math.abs(diffY)) {
-                // Horizontal: Muda a Foto da peça atual
                 if (Math.abs(diffX) > 40) {
                     if (diffX > 0) mudarFoto(-1);
                     else mudarFoto(1);
                 }
             } else {
-                // Vertical: Muda a Peça (Registro)
                 if (Math.abs(diffY) > 40) {
-                    if (diffY > 0) mudarPeca(-1); // Deslizar para baixo: Peça anterior
-                    else mudarPeca(1);            // Deslizar para cima: Próxima peça
+                    if (diffY > 0) mudarPeca(-1);
+                    else mudarPeca(1);
                 }
             }
         }, {passive: true});
@@ -853,7 +845,6 @@
             document.getElementById('viewCodigo').innerText = `Código: ${peca.codigo}`;
             document.getElementById('menuPecaActions').style.display = "flex";
             document.getElementById('infoIconBtn').style.display = "flex";
-
             document.getElementById('navPieceCounter').innerText = `${currentIndex + 1} / ${pecas.length}`;
 
             atualizarSliderFotos(peca.fotos);
@@ -967,6 +958,52 @@
             reader.onerror = error => reject(error);
         });
 
+        async function handleNovaMedidaInline(selectElement) {
+            if (selectElement.value !== "NOVA") return;
+
+            const novoNome = prompt("Digite o nome da nova medida (Ex: Diâmetro Total, Espessura):");
+            
+            if (!novoNome || novoNome.trim() === "") {
+                selectElement.value = "";
+                return;
+            }
+
+            const nomeFormatado = novoNome.trim();
+
+            if (nomesMedidasExistentes.includes(nomeFormatado)) {
+                alert("Esta medida já existe na lista!");
+                selectElement.value = nameFormatado;
+                return;
+            }
+
+            const tx = db.transaction("nomesMedidas", "readwrite");
+            tx.objectStore("nomesMedidas").put({ nome: nomeFormatado });
+
+            tx.onsuccess = () => {
+                nomesMedidasExistentes.push(nomeFormatado);
+                nomesMedidasExistentes.sort();
+
+                const todosSelects = document.querySelectorAll('.medida-nome-select');
+                todosSelects.forEach(sel => {
+                    const valorAtual = sel.value;
+                    
+                    let novasOpcoes = `<option value="">Medida</option>`;
+                    nomesMedidasExistentes.forEach(n => {
+                        novasOpcoes += `<option value="${n}">${n}</option>`;
+                    });
+                    novasOpcoes += `<option value="NOVA" style="color: blue; font-weight: bold;">[+ Nova Opção]</option>`;
+                    
+                    sel.innerHTML = novasOpcoes;
+                    
+                    if (sel === selectElement) {
+                        sel.value = nomeFormatado;
+                    } else {
+                        sel.value = valorAtual;
+                    }
+                });
+            };
+        }
+
         async function salvarPeca(e) {
             e.preventDefault();
             const id = document.getElementById('formId').value;
@@ -991,30 +1028,25 @@
 
             const medidas = [];
             const rows = document.querySelectorAll('.measurement-row-form');
-            const txNomes = db.transaction("nomesMedidas", "readwrite");
-            const storeNomes = txNomes.objectStore("nomesMedidas");
             let erroMedidaVazia = false;
 
             rows.forEach(row => {
                 const selectNome = row.querySelector('.medida-nome-select').value;
-                const inputNovoNome = row.querySelector('.medida-nome-novo').value.trim();
                 const valor = row.querySelector('.medida-valor').value;
                 const unidade = row.querySelector('.medida-unidade').value;
 
-                if (selectNome === "") {
+                if (selectNome === "" || selectNome === "NOVA") {
                     erroMedidaVazia = true;
                     return;
                 }
-                let nomeFinal = selectNome === "NOVA" ? inputNovoNome : selectNome;
-                if (nomeFinal && valor) {
-                    medidas.push({ nome: nomeFinal, valor, unidade });
-                    if (selectNome === "NOVA") storeNomes.put({ nome: nomeFinal });
+                if (selectNome && valor) {
+                    medidas.push({ nome: selectNome, valor, unidade });
                 }
             });
 
             if (erroMedidaVazia) {
                 switchTab('tab-medidas');
-                alert("Seleciona um tipo válido de Medida.");
+                alert("Selecione um tipo válido de Medida para todas as linhas preenchidas.");
                 return;
             }
 
@@ -1107,25 +1139,14 @@
             row.className = 'measurement-row-form';
 
             let opcoes = `<option value="">Medida</option>`;
-            let nomeExisteNoHistorico = false;
             nomesMedidasExistentes.forEach(n => {
                 const selecionado = (n === nome) ? "selected" : "";
-                if (n === nome) nomeExisteNoHistorico = true;
                 opcoes += `<option value="${n}" ${selecionado}>${n}</option>`;
             });
             opcoes += `<option value="NOVA" style="color: blue; font-weight: bold;">[+ Nova Opção]</option>`;
 
-            let styleInputNovo = "display:none;";
-            let inputNovoValor = "";
-            if (nome && !nomeExisteNoHistorico) {
-                opcoes = opcoes.replace('value="NOVA"', 'value="NOVA" selected');
-                styleInputNovo = "display:block;";
-                inputNovoValor = nome;
-            }
-
             row.innerHTML = `
-                <select class="medida-nome-select" onchange="toggleNovoCampoMedida(this)">${opcoes}</select>
-                <input type="text" class="medida-nome-novo" placeholder="Qual?" value="${inputNovoValor}" style="${styleInputNovo}">
+                <select class="medida-nome-select" onchange="handleNovaMedidaInline(this)">${opcoes}</select>
                 <input type="text" class="medida-valor" placeholder="Valor" value="${valor}" required style="width:100%">
                 <select class="medida-unidade">
                     <option value="mm" ${unidade === 'mm' ? 'selected' : ''}>mm</option>
@@ -1141,18 +1162,6 @@
                 <button type="button" class="btn-secondary" onclick="this.parentElement.remove()" style="padding: 0.4rem 0.6rem; background:#fee2e2; color:#ef4444; border:none; border-radius:6px; cursor:pointer;">✕</button>
             `;
             container.appendChild(row);
-        }
-
-        function toggleNovoCampoMedida(select) {
-            const inputNovo = select.nextElementSibling;
-            if (select.value === "NOVA") {
-                inputNovo.style.display = "block";
-                inputNovo.required = true;
-            } else {
-                inputNovo.style.display = "none";
-                inputNovo.required = false;
-                inputNovo.value = "";
-            }
         }
 
         function openCadastroModal() {
@@ -1173,20 +1182,26 @@
             document.getElementById('searchInput').value = '';
             document.getElementById('searchResults').style.display = 'none';
             document.getElementById('searchModal').classList.add('active');
+            setTimeout(() => document.getElementById('searchInput').focus(), 150);
         }
 
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
+        // BUSCA HÍBRIDA: Procura tanto por Nome quanto por Código ao mesmo tempo
         function handleSearchInput() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
-            const type = document.getElementById('searchType').value;
             const resultsContainer = document.getElementById('searchResults');
             resultsContainer.innerHTML = '';
             if (!query) { resultsContainer.style.display = 'none'; return; }
 
-            const filtrados = pecas.filter(p => p[type].toLowerCase().includes(query));
+            // Filtra comparando a query digitada com o nome OU com o código do produto
+            const filtrados = pecas.filter(p => 
+                p.nome.toLowerCase().includes(query) || 
+                p.codigo.toLowerCase().includes(query)
+            );
+
             if (filtrados.length === 0) {
-                resultsContainer.innerHTML = `<div class="search-item" style="color: var(--text-secondary)">Nenhuma peça encontrada</div>`;
+                resultsContainer.innerHTML = `<div class="search-item" style="color: var(--text-secondary); text-align: center;">Nenhuma peça encontrada</div>`;
             } else {
                 filtrados.forEach(p => {
                     const item = document.createElement('div');
