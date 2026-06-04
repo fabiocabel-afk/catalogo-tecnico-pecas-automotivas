@@ -13,6 +13,8 @@
             --text: #0f172a;
             --text-secondary: #64748b;
             --border: #e2e8f0;
+            --danger: #ef4444;
+            --warning: #f59e0b;
         }
 
         * {
@@ -55,6 +57,16 @@
         .btn-secondary {
             background: #e2e8f0;
             color: var(--text);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
         }
 
         #app-container {
@@ -136,6 +148,17 @@
             font-size: 0.9rem;
             color: var(--text-secondary);
             margin-top: 0.25rem;
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .action-bar .btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
         }
 
         .measurements-container {
@@ -271,6 +294,11 @@
             <div class="piece-title" id="viewNome">Nenhuma peça cadastrada</div>
             <div class="piece-code" id="viewCodigo">Código: --</div>
             <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;" id="viewMeta"></div>
+            
+            <div class="action-bar" id="actionBar" style="display: none;">
+                <button class="btn btn-warning" onclick="prepararEdicao()">✏️ Editar</button>
+                <button class="btn btn-danger" onclick="deletarPecaAtual()">🗑️ Excluir</button>
+            </div>
         </div>
 
         <div class="measurements-container">
@@ -314,8 +342,10 @@
 
     <div class="modal" id="cadastroModal">
         <div class="modal-content">
-            <h3>Cadastrar Nova Peça</h3>
+            <h3 id="modalTitle">Cadastrar Nova Peça</h3>
             <form id="cadastroForm" onsubmit="salvarPeca(event)">
+                <input type="hidden" id="formId">
+
                 <div class="form-group">
                     <label>Código da Empresa (Único) *</label>
                     <input type="text" id="formCodigo" required>
@@ -325,13 +355,14 @@
                     <input type="text" id="formNome" required>
                 </div>
                 <div class="form-group">
-                    <label>Quem está cadastrando? *</label>
+                    <label>Quem está alterando/cadastrando? *</label>
                     <input type="text" id="formResponsavel" required>
                 </div>
                 
                 <div class="form-group">
-                    <label>Fotos (1 a 6 imagens) *</label>
-                    <input type="file" id="formFotos" accept="image/*" multiple required onchange="validarFotos(this)">
+                    <label id="labelFotos">Fotos (1 a 6 imagens) *</label>
+                    <input type="file" id="formFotos" accept="image/*" multiple onchange="validarFotos(this)">
+                    <small id="ajudaFotos" style="color: var(--text-secondary);">Selecione arquivos caso queira substituir as fotos atuais.</small>
                 </div>
 
                 <div class="form-group">
@@ -347,23 +378,21 @@
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('cadastroModal')">Cancelar</button>
-                    <button type="submit" class="btn">Salvar Peça</button>
+                    <button type="submit" class="btn" id="btnSalvar">Salvar Peça</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // REGISTRO DO SERVICE WORKER (Para funcionamento PWA / Offline)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(() => console.log('Service Worker registrado com sucesso!'))
-                    .catch(err => console.error('Falha ao registrar Service Worker:', err));
+                    .then(() => console.log('Service Worker registrado!'))
+                    .catch(err => console.error(err));
             });
         }
 
-        // BANCO DE DADOS LOCAL (IndexedDB)
         let db;
         const dbName = "CatalogoTecnicoDB";
         
@@ -387,7 +416,6 @@
         let currentPhotoIndex = 0;
         let nomesMedidasExistentes = [];
 
-        // GESTOS (SWIPE)
         let touchStartX = 0;
         let touchStartY = 0;
         const container = document.getElementById('app-container');
@@ -414,15 +442,31 @@
             }
         }, {passive: true});
 
+        function resetarVisualizacaoVazia() {
+            document.getElementById('viewNome').innerText = "Nenhuma peça cadastrada";
+            document.getElementById('viewCodigo').innerText = "Código: --";
+            document.getElementById('viewObservacao').innerText = "--";
+            document.getElementById('viewMeta').innerText = "";
+            document.getElementById('actionBar').style.display = "none";
+            document.getElementById('imageSlider').innerHTML = '';
+            document.getElementById('dotsContainer').innerHTML = '';
+            document.getElementById('measurementsTableBody').innerHTML = '';
+        }
+
         function exibirPecaAtual() {
-            if (pecas.length === 0) return;
+            if (pecas.length === 0) {
+                resetarVisualizacaoVazia();
+                return;
+            }
+            
             const peca = pecas[currentIndex];
             currentPhotoIndex = 0;
 
             document.getElementById('viewNome').innerText = peca.nome;
             document.getElementById('viewCodigo').innerText = `Código: ${peca.codigo}`;
             document.getElementById('viewObservacao').innerText = peca.observacao || "Sem observações.";
-            document.getElementById('viewMeta').innerText = `Cadastrado por: ${peca.responsavel} em ${peca.dataHora}`;
+            document.getElementById('viewMeta').innerText = `Modificado por: ${peca.responsavel} em ${peca.dataHora}`;
+            document.getElementById('actionBar').style.display = "flex";
 
             atualizarSliderFotos(peca.fotos);
 
@@ -484,12 +528,22 @@
             exibirPecaAtual();
         }
 
-        function carregarPecas() {
+        function carregarPecas(focarId = null) {
             const transaction = db.transaction(["pecas", "nomesMedidas"], "readonly");
             
             transaction.objectStore("pecas").getAll().onsuccess = (e) => {
                 pecas = e.target.result;
-                if (pecas.length > 0) exibirPecaAtual();
+                if (pecas.length > 0) {
+                    if (focarId) {
+                        const indexEncontrado = pecas.findIndex(p => p.id === focarId);
+                        currentIndex = indexEncontrado !== -1 ? indexEncontrado : 0;
+                    } else if (currentIndex >= pecas.length) {
+                        currentIndex = pecas.length - 1;
+                    }
+                    exibirPecaAtual();
+                } else {
+                    resetarVisualizacaoVazia();
+                }
             };
 
             transaction.objectStore("nomesMedidas").getAll().onsuccess = (e) => {
@@ -511,22 +565,33 @@
             reader.onerror = error => reject(error);
         });
 
+        // SALVAR (INSERIR OU ALTERAR) PEÇA
         async function salvarPeca(e) {
             e.preventDefault();
             
+            const id = document.getElementById('formId').value;
             const codigo = document.getElementById('formCodigo').value.trim();
             const nome = document.getElementById('formNome').value.trim();
             const responsavel = document.getElementById('formResponsavel').value.trim();
             const observacao = document.getElementById('formObservacao').value.substring(0, 200);
             const inputFotos = document.getElementById('formFotos').files;
 
-            if (inputFotos.length < 1 || inputFotos.length > 6) {
-                alert("Selecione entre 1 e 6 imagens.");
+            let fotos = [];
+            
+            // Modo Criação exige fotos. Modo Edição mantém as antigas se não enviar novas.
+            if (!id && inputFotos.length === 0) {
+                alert("Por favor, selecione pelo menos 1 foto para o cadastro.");
                 return;
             }
 
-            const fotosPromessas = Array.from(inputFotos).map(file => fileToBase64(file));
-            const fotos = await Promise.all(fotosPromessas);
+            if (inputFotos.length > 0) {
+                const fotosPromessas = Array.from(inputFotos).map(file => fileToBase64(file));
+                fotos = await Promise.all(fotosPromessas);
+            } else if (id) {
+                // Mantém as fotos atuais da peça que está sendo editada
+                const pecaAntiga = pecas.find(p => p.id === parseInt(id));
+                if (pecaAntiga) fotos = pecaAntiga.fotos;
+            }
 
             const medidas = [];
             const rows = document.querySelectorAll('.measurement-row-form');
@@ -549,7 +614,7 @@
                 }
             });
 
-            const novaPeca = {
+            const dadosPeca = {
                 codigo,
                 nome,
                 responsavel,
@@ -560,41 +625,127 @@
             };
 
             const txPeca = db.transaction("pecas", "readwrite");
-            const request = txPeca.objectStore("pecas").add(novaPeca);
+            const storePeca = txPeca.objectStore("pecas");
+            let request;
 
-            request.onsuccess = () => {
-                alert("Peça cadastrada com sucesso!");
+            if (id) {
+                dadosPeca.id = parseInt(id);
+                request = storePeca.put(dadosPeca); // Atualiza
+            } else {
+                request = storePeca.add(dadosPeca); // Insere novo
+            }
+
+            request.onsuccess = (evt) => {
+                alert(id ? "Peça atualizada com sucesso!" : "Peça cadastrada com sucesso!");
                 closeModal('cadastroModal');
                 document.getElementById('cadastroForm').reset();
-                carregarPecas();
+                
+                // Recarrega focando na peça modificada/criada
+                const idFoco = id ? parseInt(id) : evt.target.result;
+                carregarPecas(idFoco);
             };
 
             request.onerror = () => {
-                alert("Erro ao salvar! Verifique se o código da empresa já existe.");
+                alert("Erro ao salvar! Verifique se o Código do Produto já está em uso por outra peça.");
             };
         }
 
+        // EXCLUIR PEÇA DEFINITIVAMENTE
+        function deletarPecaAtual() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+            
+            const confirmar = confirm(`ATENÇÃO:\nTem certeza que deseja apagar permanentemente o produto "${peca.nome}" (Código: ${peca.codigo}) e todas as suas imagens?`);
+            
+            if (confirmar) {
+                const tx = db.transaction("pecas", "readwrite");
+                const request = tx.objectStore("pecas").delete(peca.id);
+
+                request.onsuccess = () => {
+                    alert("Peça e imagens excluídas com sucesso!");
+                    // Ajusta o ponteiro para não quebrar a navegação
+                    if (currentIndex > 0) currentIndex--;
+                    carregarPecas();
+                };
+
+                request.onerror = () => {
+                    alert("Ocorreu um erro ao tentar excluir a peça.");
+                };
+            }
+        }
+
+        // PREPARAR FORMULÁRIO PARA EDIÇÃO (CARREGAR DADOS)
+        function prepararEdicao() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+
+            // Configura títulos e campos fixos
+            document.getElementById('modalTitle').innerText = "Editar Dados da Peça";
+            document.getElementById('btnSalvar').innerText = "Atualizar Peça";
+            document.getElementById('formId').value = peca.id;
+            document.getElementById('formCodigo').value = peca.codigo;
+            document.getElementById('formNome').value = peca.nome;
+            document.getElementById('formResponsavel').value = peca.responsavel || "";
+            document.getElementById('formObservacao').value = peca.observacao || "";
+            
+            // Torna o input de fotos opcional ao editar
+            document.getElementById('formFotos').required = false;
+            document.getElementById('labelFotos').innerText = "Substituir Fotos (Opcional)";
+
+            // Limpa e reinsere as linhas de medidas da peça
+            const containerMedidas = document.getElementById('formMedidasLista');
+            containerMedidas.innerHTML = '';
+
+            if (peca.medidas && peca.medidas.length > 0) {
+                peca.medidas.forEach(m => {
+                    adicionarLinhaMedidaComValores(m.nome, m.valor, m.unidade);
+                });
+            } else {
+                adicionarLinhaMedida();
+            }
+
+            document.getElementById('cadastroModal').classList.add('active');
+        }
+
         function adicionarLinhaMedida() {
+            adicionarLinhaMedidaComValores("", "", "mm");
+        }
+
+        // Auxiliar que constrói a linha de medida (vazia ou pré-preenchida)
+        function adicionarLinhaMedidaComValores(nome, valor, unidade) {
             const container = document.getElementById('formMedidasLista');
             const row = document.createElement('div');
             row.className = 'measurement-row-form';
 
             let opcoes = `<option value="">Escolha...</option>`;
+            let nomeExisteNoHistorico = false;
+
             nomesMedidasExistentes.forEach(n => {
-                opcoes += `<option value="${n}">${n}</option>`;
+                const selecionado = (n === nome) ? "selected" : "";
+                if (n === nome) nomeExisteNoHistorico = true;
+                opcoes += `<option value="${n}" ${selecionado}>${n}</option>`;
             });
             opcoes += `<option value="NOVA" style="color: blue; font-weight: bold;">[+ Nova Opção]</option>`;
+
+            // Se o nome existe mas não estava no histórico padrão (caso raro), força exibição
+            let styleInputNovo = "display:none;";
+            let inputNovoValor = "";
+            if (nome && !nomeExisteNoHistorico) {
+                opcoes = opcoes.replace('value="NOVA"', 'value="NOVA" selected');
+                styleInputNovo = "display:block;";
+                inputNovoValor = nome;
+            }
 
             row.innerHTML = `
                 <select class="medida-nome-select" onchange="toggleNovoCampoMedida(this)">
                     ${opcoes}
                 </select>
-                <input type="text" class="medida-nome-novo" placeholder="Qual o Nome?" style="display:none;">
-                <input type="text" class="medida-valor" placeholder="Valor" required>
+                <input type="text" class="medida-nome-novo" placeholder="Qual o Nome?" value="${inputNovoValor}" style="${styleInputNovo}">
+                <input type="text" class="medida-valor" placeholder="Valor" value="${valor}" required>
                 <select class="medida-unidade">
-                    <option value="mm">mm</option>
-                    <option value="cm">cm</option>
-                    <option value="pol">pol</option>
+                    <option value="mm" ${unidade === 'mm' ? 'selected' : ''}>mm</option>
+                    <option value="cm" ${unidade === 'cm' ? 'selected' : ''}>cm</option>
+                    <option value="pol" ${unidade === 'pol' ? 'selected' : ''}>pol</option>
                 </select>
                 <button type="button" class="btn btn-secondary" onclick="this.parentElement.remove()" style="padding: 0.4rem 0.6rem; background:#fee2e2; color:#ef4444;">✕</button>
             `;
@@ -609,10 +760,19 @@
             } else {
                 inputNovo.style.display = "none";
                 inputNovo.required = false;
+                inputNovo.value = "";
             }
         }
 
         function openCadastroModal() {
+            // Reseta as configurações para o modo "Novo Cadastro" nativo
+            document.getElementById('modalTitle').innerText = "Cadastrar Nova Peça";
+            document.getElementById('btnSalvar').innerText = "Salvar Peça";
+            document.getElementById('formId').value = "";
+            document.getElementById('cadastroForm').reset();
+            document.getElementById('formFotos').required = true;
+            document.getElementById('labelFotos').innerText = "Fotos (1 a 6 imagens) *";
+            
             document.getElementById('formMedidasLista').innerHTML = '';
             adicionarLinhaMedida();
             document.getElementById('cadastroModal').classList.add('active');
@@ -624,7 +784,6 @@
             document.getElementById('searchModal').classList.add('active');
         }
 
-        // Função corrigida para fechar corretamente os modais
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
         }
