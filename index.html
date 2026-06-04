@@ -36,12 +36,72 @@
 
         header {
             background: var(--surface);
-            padding: 1rem;
+            padding: 0.8rem 1rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border);
             z-index: 10;
+            position: relative;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--text);
+            padding: 0.2rem 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* MENU HAMBÚRGUER RETRÁTIL */
+        .menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 100px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+            flex-direction: column;
+            min-width: 160px;
+            z-index: 99;
+            overflow: hidden;
+        }
+
+        .menu-dropdown.active {
+            display: flex;
+        }
+
+        .menu-item {
+            background: none;
+            border: none;
+            padding: 0.8rem 1rem;
+            text-align: left;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:active {
+            background: #f1f5f9;
+        }
+
+        .menu-item.danger {
+            color: var(--danger);
         }
 
         .btn {
@@ -57,16 +117,6 @@
         .btn-secondary {
             background: #e2e8f0;
             color: var(--text);
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-warning {
-            background: var(--warning);
-            color: white;
         }
 
         #app-container {
@@ -148,17 +198,6 @@
             font-size: 0.9rem;
             color: var(--text-secondary);
             margin-top: 0.25rem;
-        }
-
-        .action-bar {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .action-bar .btn {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.85rem;
         }
 
         .measurements-container {
@@ -279,9 +318,18 @@
 <body>
 
     <header>
-        <button class="btn btn-secondary" onclick="openSearchModal()">🔍 Buscar</button>
-        <h2>Catálogo</h2>
-        <button class="btn" onclick="openCadastroModal()">＋ Novo</button>
+        <div style="width: 40px;"></div> <h2>Catálogo</h2>
+        
+        <button class="menu-btn" onclick="toggleMenu(event)">☰</button>
+        
+        <div class="menu-dropdown" id="menuDropdown">
+            <button class="menu-item" onclick="execMenu('buscar')">🔍 Buscar</button>
+            <button class="menu-item" onclick="execMenu('novo')">＋ Novo Registro</button>
+            <div id="menuPecaActions" style="display: none; flex-direction: column;">
+                <button class="menu-item" onclick="execMenu('editar')">✏️ Editar Peça</button>
+                <button class="menu-item danger" onclick="execMenu('excluir')">🗑️ Excluir Peça</button>
+            </div>
+        </div>
     </header>
 
     <div id="app-container">
@@ -294,11 +342,6 @@
             <div class="piece-title" id="viewNome">Nenhuma peça cadastrada</div>
             <div class="piece-code" id="viewCodigo">Código: --</div>
             <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;" id="viewMeta"></div>
-            
-            <div class="action-bar" id="actionBar" style="display: none;">
-                <button class="btn btn-warning" onclick="prepararEdicao()">✏️ Editar</button>
-                <button class="btn btn-danger" onclick="deletarPecaAtual()">🗑️ Excluir</button>
-            </div>
         </div>
 
         <div class="measurements-container">
@@ -387,9 +430,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(() => console.log('Service Worker registrado!'))
-                    .catch(err => console.error(err));
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
             });
         }
 
@@ -398,7 +439,7 @@
         
         function initDB() {
             const request = indexedDB.open(dbName, 1);
-            request.onerror = (e) => console.error("Erro no banco:", e);
+            request.onerror = (e) => console.error(e);
             request.onsuccess = (e) => {
                 db = e.target.result;
                 carregarPecas();
@@ -416,6 +457,26 @@
         let currentPhotoIndex = 0;
         let nomesMedidasExistentes = [];
 
+        // CONTROLE DO MENU HAMBÚRGUER
+        function toggleMenu(e) {
+            e.stopPropagation();
+            document.getElementById('menuDropdown').classList.toggle('active');
+        }
+
+        // Fecha o menu se clicar em qualquer outra parte da tela
+        document.addEventListener('click', () => {
+            document.getElementById('menuDropdown').classList.remove('active');
+        });
+
+        function execMenu(opcao) {
+            document.getElementById('menuDropdown').classList.remove('active');
+            if (opcao === 'buscar') openSearchModal();
+            else if (opcao === 'novo') openCadastroModal();
+            else if (opcao === 'editar') prepararEdicao();
+            else if (opcao === 'excluir') deletarPecaAtual();
+        }
+
+        // GESTOS (SWIPE)
         let touchStartX = 0;
         let touchStartY = 0;
         const container = document.getElementById('app-container');
@@ -447,7 +508,7 @@
             document.getElementById('viewCodigo').innerText = "Código: --";
             document.getElementById('viewObservacao').innerText = "--";
             document.getElementById('viewMeta').innerText = "";
-            document.getElementById('actionBar').style.display = "none";
+            document.getElementById('menuPecaActions').style.display = "none";
             document.getElementById('imageSlider').innerHTML = '';
             document.getElementById('dotsContainer').innerHTML = '';
             document.getElementById('measurementsTableBody').innerHTML = '';
@@ -466,7 +527,9 @@
             document.getElementById('viewCodigo').innerText = `Código: ${peca.codigo}`;
             document.getElementById('viewObservacao').innerText = peca.observacao || "Sem observações.";
             document.getElementById('viewMeta').innerText = `Modificado por: ${peca.responsavel} em ${peca.dataHora}`;
-            document.getElementById('actionBar').style.display = "flex";
+            
+            // Ativa as opções de Editar/Excluir no menu hambúrguer
+            document.getElementById('menuPecaActions').style.display = "flex";
 
             atualizarSliderFotos(peca.fotos);
 
@@ -565,7 +628,6 @@
             reader.onerror = error => reject(error);
         });
 
-        // SALVAR (INSERIR OU ALTERAR) PEÇA
         async function salvarPeca(e) {
             e.preventDefault();
             
@@ -578,7 +640,6 @@
 
             let fotos = [];
             
-            // Modo Criação exige fotos. Modo Edição mantém as antigas se não enviar novas.
             if (!id && inputFotos.length === 0) {
                 alert("Por favor, selecione pelo menos 1 foto para o cadastro.");
                 return;
@@ -588,7 +649,6 @@
                 const fotosPromessas = Array.from(inputFotos).map(file => fileToBase64(file));
                 fotos = await Promise.all(fotosPromessas);
             } else if (id) {
-                // Mantém as fotos atuais da peça que está sendo editada
                 const pecaAntiga = pecas.find(p => p.id === parseInt(id));
                 if (pecaAntiga) fotos = pecaAntiga.fotos;
             }
@@ -630,9 +690,9 @@
 
             if (id) {
                 dadosPeca.id = parseInt(id);
-                request = storePeca.put(dadosPeca); // Atualiza
+                request = storePeca.put(dadosPeca);
             } else {
-                request = storePeca.add(dadosPeca); // Insere novo
+                request = storePeca.add(dadosPeca);
             }
 
             request.onsuccess = (evt) => {
@@ -640,46 +700,37 @@
                 closeModal('cadastroModal');
                 document.getElementById('cadastroForm').reset();
                 
-                // Recarrega focando na peça modificada/criada
                 const idFoco = id ? parseInt(id) : evt.target.result;
                 carregarPecas(idFoco);
             };
 
             request.onerror = () => {
-                alert("Erro ao salvar! Verifique se o Código do Produto já está em uso por outra peça.");
+                alert("Erro ao salvar! Verifique se o Código do Produto já está em uso.");
             };
         }
 
-        // EXCLUIR PEÇA DEFINITIVAMENTE
         function deletarPecaAtual() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
             
-            const confirmar = confirm(`ATENÇÃO:\nTem certeza que deseja apagar permanentemente o produto "${peca.nome}" (Código: ${peca.codigo}) e todas as suas imagens?`);
+            const confirmar = confirm(`ATENÇÃO:\nDeseja apagar permanentemente o produto "${peca.nome}" (Código: ${peca.codigo})?`);
             
             if (confirmar) {
                 const tx = db.transaction("pecas", "readwrite");
                 const request = tx.objectStore("pecas").delete(peca.id);
 
                 request.onsuccess = () => {
-                    alert("Peça e imagens excluídas com sucesso!");
-                    // Ajusta o ponteiro para não quebrar a navegação
+                    alert("Peça excluída com sucesso!");
                     if (currentIndex > 0) currentIndex--;
                     carregarPecas();
-                };
-
-                request.onerror = () => {
-                    alert("Ocorreu um erro ao tentar excluir a peça.");
                 };
             }
         }
 
-        // PREPARAR FORMULÁRIO PARA EDIÇÃO (CARREGAR DADOS)
         function prepararEdicao() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
 
-            // Configura títulos e campos fixos
             document.getElementById('modalTitle').innerText = "Editar Dados da Peça";
             document.getElementById('btnSalvar').innerText = "Atualizar Peça";
             document.getElementById('formId').value = peca.id;
@@ -688,11 +739,9 @@
             document.getElementById('formResponsavel').value = peca.responsavel || "";
             document.getElementById('formObservacao').value = peca.observacao || "";
             
-            // Torna o input de fotos opcional ao editar
             document.getElementById('formFotos').required = false;
             document.getElementById('labelFotos').innerText = "Substituir Fotos (Opcional)";
 
-            // Limpa e reinsere as linhas de medidas da peça
             const containerMedidas = document.getElementById('formMedidasLista');
             containerMedidas.innerHTML = '';
 
@@ -711,7 +760,6 @@
             adicionarLinhaMedidaComValores("", "", "mm");
         }
 
-        // Auxiliar que constrói a linha de medida (vazia ou pré-preenchida)
         function adicionarLinhaMedidaComValores(nome, valor, unidade) {
             const container = document.getElementById('formMedidasLista');
             const row = document.createElement('div');
@@ -727,7 +775,6 @@
             });
             opcoes += `<option value="NOVA" style="color: blue; font-weight: bold;">[+ Nova Opção]</option>`;
 
-            // Se o nome existe mas não estava no histórico padrão (caso raro), força exibição
             let styleInputNovo = "display:none;";
             let inputNovoValor = "";
             if (nome && !nomeExisteNoHistorico) {
@@ -765,7 +812,6 @@
         }
 
         function openCadastroModal() {
-            // Reseta as configurações para o modo "Novo Cadastro" nativo
             document.getElementById('modalTitle').innerText = "Cadastrar Nova Peça";
             document.getElementById('btnSalvar').innerText = "Salvar Peça";
             document.getElementById('formId').value = "";
