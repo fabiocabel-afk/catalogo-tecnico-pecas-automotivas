@@ -57,11 +57,10 @@
             justify-content: center;
         }
 
-        /* MENU HAMBÚRGUER RETRÁTIL */
         .menu-dropdown {
             position: absolute;
             top: 100%;
-            right: 100px;
+            right: 10px;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 8px;
@@ -159,12 +158,6 @@
             object-fit: contain;
         }
 
-        .no-image {
-            color: #fff;
-            font-size: 0.9rem;
-            text-align: center;
-        }
-
         .dots-container {
             position: absolute;
             bottom: 10px;
@@ -189,9 +182,29 @@
             border-bottom: 1px solid var(--border);
         }
 
+        .title-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         .piece-title {
             font-size: 1.2rem;
             font-weight: bold;
+            word-break: break-word;
+        }
+
+        .info-icon-btn {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 0.2rem;
+            display: none; /* Só aparece quando há peças */
+            align-items: center;
+            justify-content: center;
         }
 
         .piece-code {
@@ -229,14 +242,6 @@
         th {
             font-weight: 600;
             color: var(--text-secondary);
-        }
-
-        .obs-section {
-            padding: 1rem;
-            background: #f8fafc;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            border-top: 1px solid var(--border);
         }
 
         .modal {
@@ -313,12 +318,20 @@
             gap: 0.5rem;
             align-items: center;
         }
+
+        .info-popup-section {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <div style="width: 40px;"></div> <h2>Catálogo</h2>
+        <div style="width: 40px;"></div>
+        <h2>Catálogo</h2>
         
         <button class="menu-btn" onclick="toggleMenu(event)">☰</button>
         
@@ -339,9 +352,11 @@
         </div>
 
         <div class="piece-info">
-            <div class="piece-title" id="viewNome">Nenhuma peça cadastrada</div>
+            <div class="title-container">
+                <div class="piece-title" id="viewNome">Nenhuma peça cadastrada</div>
+                <button class="info-icon-btn" id="infoIconBtn" onclick="openInfoModal()">ⓘ</button>
+            </div>
             <div class="piece-code" id="viewCodigo">Código: --</div>
-            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;" id="viewMeta"></div>
         </div>
 
         <div class="measurements-container">
@@ -356,10 +371,25 @@
                 <tbody id="measurementsTableBody"></tbody>
             </table>
         </div>
+    </div>
 
-        <div class="obs-section">
-            <strong>Observações:</strong>
-            <p id="viewObservacao">--</p>
+    <div class="modal" id="infoModal">
+        <div class="modal-content">
+            <h3 id="infoModalTitle">Detalhes da Peça</h3>
+            
+            <div class="info-popup-section" id="infoObsContainer">
+                <strong>Observação:</strong>
+                <p id="infoObservacaoText" style="margin-top: 4px; font-size: 0.95rem; color: var(--text);"></p>
+            </div>
+
+            <div class="info-popup-section" style="border-left: 4px solid var(--primary);">
+                <strong>Histórico de Alteração:</strong>
+                <p id="infoMetaText" style="margin-top: 4px; font-size: 0.85rem; color: var(--text-secondary);"></p>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+                <button class="btn btn-secondary" onclick="closeModal('infoModal')">Fechar</button>
+            </div>
         </div>
     </div>
 
@@ -457,13 +487,11 @@
         let currentPhotoIndex = 0;
         let nomesMedidasExistentes = [];
 
-        // CONTROLE DO MENU HAMBÚRGUER
         function toggleMenu(e) {
             e.stopPropagation();
             document.getElementById('menuDropdown').classList.toggle('active');
         }
 
-        // Fecha o menu se clicar em qualquer outra parte da tela
         document.addEventListener('click', () => {
             document.getElementById('menuDropdown').classList.remove('active');
         });
@@ -506,9 +534,8 @@
         function resetarVisualizacaoVazia() {
             document.getElementById('viewNome').innerText = "Nenhuma peça cadastrada";
             document.getElementById('viewCodigo').innerText = "Código: --";
-            document.getElementById('viewObservacao').innerText = "--";
-            document.getElementById('viewMeta').innerText = "";
             document.getElementById('menuPecaActions').style.display = "none";
+            document.getElementById('infoIconBtn').style.display = "none";
             document.getElementById('imageSlider').innerHTML = '';
             document.getElementById('dotsContainer').innerHTML = '';
             document.getElementById('measurementsTableBody').innerHTML = '';
@@ -525,11 +552,10 @@
 
             document.getElementById('viewNome').innerText = peca.nome;
             document.getElementById('viewCodigo').innerText = `Código: ${peca.codigo}`;
-            document.getElementById('viewObservacao').innerText = peca.observacao || "Sem observações.";
-            document.getElementById('viewMeta').innerText = `Modificado por: ${peca.responsavel} em ${peca.dataHora}`;
             
-            // Ativa as opções de Editar/Excluir no menu hambúrguer
+            // Ativa o menu de ações e o botão ⓘ
             document.getElementById('menuPecaActions').style.display = "flex";
+            document.getElementById('infoIconBtn').style.display = "flex";
 
             atualizarSliderFotos(peca.fotos);
 
@@ -540,6 +566,28 @@
                 tr.innerHTML = `<td>${m.nome}</td><td>${m.valor}</td><td>${m.unidade}</td>`;
                 tbody.appendChild(tr);
             });
+        }
+
+        // LÓGICA DO JANELA DE INFORMAÇÕES (BOTÃO ⓘ)
+        function openInfoModal() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+
+            document.getElementById('infoModalTitle').innerText = peca.nome;
+            document.getElementById('infoMetaText').innerText = `Modificado por: ${peca.responsavel || '--'} em ${peca.dataHora}`;
+
+            const obsContainer = document.getElementById('infoObsContainer');
+            const obsText = document.getElementById('infoObservacaoText');
+
+            // Condicional solicitada: Se houver observação exibe ela e o título, se não, oculta a área
+            if (peca.observacao && peca.observacao.trim() !== "") {
+                obsText.innerText = peca.observacao;
+                obsContainer.style.display = "block";
+            } else {
+                obsContainer.style.display = "none";
+            }
+
+            document.getElementById('infoModal').classList.add('active');
         }
 
         function atualizarSliderFotos(fotos) {
