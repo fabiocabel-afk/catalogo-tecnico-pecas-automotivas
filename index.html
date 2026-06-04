@@ -744,7 +744,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
@@ -799,7 +799,7 @@
             tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
         }
 
-        // Deslizar nas Fotos (Gestos Touch permanecem válidos)
+        // SISTEMA DE GESTOS TOUCH (Swipe Horizontal e Vertical)
         let touchStartX = 0;
         let touchStartY = 0;
         const viewerElement = document.getElementById('imageViewer');
@@ -813,9 +813,19 @@
             const diffX = e.changedTouches[0].screenX - touchStartX;
             const diffY = e.changedTouches[0].screenY - touchStartY;
             
-            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-                if (diffX > 0) mudarFoto(-1);
-                else mudarFoto(1);
+            // Verifica se o movimento predominante foi Horizontal ou Vertical
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                // Horizontal: Muda a Foto da peça atual
+                if (Math.abs(diffX) > 40) {
+                    if (diffX > 0) mudarFoto(-1);
+                    else mudarFoto(1);
+                }
+            } else {
+                // Vertical: Muda a Peça (Registro)
+                if (Math.abs(diffY) > 40) {
+                    if (diffY > 0) mudarPeca(-1); // Deslizar para baixo: Peça anterior
+                    else mudarPeca(1);            // Deslizar para cima: Próxima peça
+                }
             }
         }, {passive: true});
 
@@ -844,7 +854,6 @@
             document.getElementById('menuPecaActions').style.display = "flex";
             document.getElementById('infoIconBtn').style.display = "flex";
 
-            // Atualiza o contador centralizado da barra inferior (Ex: 2 / 10)
             document.getElementById('navPieceCounter').innerText = `${currentIndex + 1} / ${pecas.length}`;
 
             atualizarSliderFotos(peca.fotos);
@@ -916,7 +925,7 @@
         function mudarPeca(direcao) {
             if (pecas.length <= 1) return;
             currentIndex += direcao;
-            if (currentIndex < 0) currentIndex = pecas.length - 1; // Efeito rotativo nos produtos
+            if (currentIndex < 0) currentIndex = pecas.length - 1; 
             if (currentIndex >= pecas.length) currentIndex = 0;
             exibirPecaAtual();
         }
