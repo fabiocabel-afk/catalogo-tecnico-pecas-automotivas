@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Catálogo Técnico PWA</title>
+    <link rel="icon" type="image/png" href="./favicon.png">
     <link rel="manifest" href="./manifest.json">
     <style>
         :root {
@@ -202,7 +203,7 @@
             color: var(--primary);
             cursor: pointer;
             padding: 0.2rem;
-            display: none; /* Só aparece quando há peças */
+            display: none;
             align-items: center;
             justify-content: center;
         }
@@ -325,6 +326,44 @@
             border-radius: 8px;
             border: 1px solid var(--border);
         }
+
+        /* ESTILOS GERENCIADOR DE FOTOS (EDIÇÃO) */
+        .fotos-atuais-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .foto-atual-item {
+            position: relative;
+            aspect-ratio: 1;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .foto-atual-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .btn-remover-foto {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(239, 68, 68, 0.85);
+            color: white;
+            border: none;
+            font-size: 0.7rem;
+            padding: 0.2rem 0;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -431,11 +470,16 @@
                     <label>Quem está alterando/cadastrando? *</label>
                     <input type="text" id="formResponsavel" required>
                 </div>
+
+                <div class="form-group" id="formFotosAtuaisContainer" style="display: none;">
+                    <label>Fotos Atuais Cadastradas</label>
+                    <div class="fotos-atuais-grid" id="fotosAtuaisGrid"></div>
+                </div>
                 
                 <div class="form-group">
-                    <label id="labelFotos">Fotos (1 a 6 imagens) *</label>
+                    <label id="labelFotos">Adicionar Fotos (1 a 6 imagens) *</label>
                     <input type="file" id="formFotos" accept="image/*" multiple onchange="validarFotos(this)">
-                    <small id="ajudaFotos" style="color: var(--text-secondary);">Selecione arquivos caso queira substituir as fotos atuais.</small>
+                    <small id="ajudaFotos" style="color: var(--text-secondary);">Selecione arquivos caso queira incluir novas fotos.</small>
                 </div>
 
                 <div class="form-group">
@@ -486,6 +530,7 @@
         let currentIndex = 0;
         let currentPhotoIndex = 0;
         let nomesMedidasExistentes = [];
+        let fotosTemporariasEdicao = []; // Guarda as fotos salvas durante o processo de edição
 
         function toggleMenu(e) {
             e.stopPropagation();
@@ -553,7 +598,6 @@
             document.getElementById('viewNome').innerText = peca.nome;
             document.getElementById('viewCodigo').innerText = `Código: ${peca.codigo}`;
             
-            // Ativa o menu de ações e o botão ⓘ
             document.getElementById('menuPecaActions').style.display = "flex";
             document.getElementById('infoIconBtn').style.display = "flex";
 
@@ -568,7 +612,6 @@
             });
         }
 
-        // LÓGICA DO JANELA DE INFORMAÇÕES (BOTÃO ⓘ)
         function openInfoModal() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
@@ -579,7 +622,6 @@
             const obsContainer = document.getElementById('infoObsContainer');
             const obsText = document.getElementById('infoObservacaoText');
 
-            // Condicional solicitada: Se houver observação exibe ela e o título, se não, oculta a área
             if (peca.observacao && peca.observacao.trim() !== "") {
                 obsText.innerText = peca.observacao;
                 obsContainer.style.display = "block";
@@ -663,8 +705,11 @@
         }
 
         function validarFotos(input) {
-            if (input.files.length > 6) {
-                alert("Você só pode selecionar no máximo 6 fotos.");
+            const totalExistentes = fotosTemporariasEdicao.length;
+            const totalNovas = input.files.length;
+
+            if (totalExistentes + totalNovas > 6) {
+                alert(`O limite total é de 6 fotos por peça. Você já tem ${totalExistentes} mantidas e tentou adicionar mais ${totalNovas}.`);
                 input.value = "";
             }
         }
@@ -686,19 +731,20 @@
             const observacao = document.getElementById('formObservacao').value.substring(0, 200);
             const inputFotos = document.getElementById('formFotos').files;
 
-            let fotos = [];
+            // Começa unindo as fotos antigas que NÃO foram excluídas pelo painel
+            let fotosFinais = [...fotosTemporariasEdicao];
             
-            if (!id && inputFotos.length === 0) {
-                alert("Por favor, selecione pelo menos 1 foto para o cadastro.");
-                return;
-            }
-
+            // Se houver novas fotos escolhidas no input de arquivo, transforma e junta
             if (inputFotos.length > 0) {
                 const fotosPromessas = Array.from(inputFotos).map(file => fileToBase64(file));
-                fotos = await Promise.all(fotosPromessas);
-            } else if (id) {
-                const pecaAntiga = pecas.find(p => p.id === parseInt(id));
-                if (pecaAntiga) fotos = pecaAntiga.fotos;
+                const novasFotosBase64 = await Promise.all(fotosPromessas);
+                fotosFinais = fotosFinais.concat(novasFotosBase64);
+            }
+
+            // Validação de segurança: precisa ter no mínimo 1 foto ativa
+            if (fotosFinais.length === 0) {
+                alert("Por favor, a peça precisa ter pelo menos 1 foto associada.");
+                return;
             }
 
             const medidas = [];
@@ -727,7 +773,7 @@
                 nome,
                 responsavel,
                 observacao,
-                fotos,
+                fotos: fotosFinais,
                 medidas,
                 dataHora: new Date().toLocaleString('pt-BR')
             };
@@ -788,7 +834,11 @@
             document.getElementById('formObservacao').value = peca.observacao || "";
             
             document.getElementById('formFotos').required = false;
-            document.getElementById('labelFotos').innerText = "Substituir Fotos (Opcional)";
+            document.getElementById('labelFotos').innerText = "Adicionar Novas Fotos (Opcional)";
+
+            // Clona o array original de fotos para controle temporário de remoção na tela
+            fotosTemporariasEdicao = [...(peca.fotos || [])];
+            renderizarPainelFotosEdicao();
 
             const containerMedidas = document.getElementById('formMedidasLista');
             containerMedidas.innerHTML = '';
@@ -802,6 +852,36 @@
             }
 
             document.getElementById('cadastroModal').classList.add('active');
+        }
+
+        // Reconstrói as miniaturas das fotos no painel de edição
+        function renderizarPainelFotosEdicao() {
+            const containerPainel = document.getElementById('formFotosAtuaisContainer');
+            const grid = document.getElementById('fotosAtuaisGrid');
+            grid.innerHTML = '';
+
+            if (fotosTemporariasEdicao.length > 0) {
+                containerPainel.style.display = 'block';
+                fotosTemporariasEdicao.forEach((foto, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'foto-atual-item';
+                    item.innerHTML = `
+                        <img src="${foto}">
+                        <button type="button" class="btn-remover-foto" onclick="removerFotoEdicao(${index})">Remover</button>
+                    `;
+                    grid.appendChild(item);
+                });
+            } else {
+                containerPainel.style.display = 'none';
+            }
+        }
+
+        // Remove a foto do array temporário ao clicar em remover
+        function removerFotoEdicao(index) {
+            fotosTemporariasEdicao.splice(index, 1);
+            renderizarPainelFotosEdicao();
+            // Reseta o input de arquivo para recalcular a validação se necessário
+            document.getElementById('formFotos').value = '';
         }
 
         function adicionarLinhaMedida() {
@@ -866,6 +946,8 @@
             document.getElementById('cadastroForm').reset();
             document.getElementById('formFotos').required = true;
             document.getElementById('labelFotos').innerText = "Fotos (1 a 6 imagens) *";
+            document.getElementById('formFotosAtuaisContainer').style.display = 'none';
+            fotosTemporariasEdicao = [];
             
             document.getElementById('formMedidasLista').innerHTML = '';
             adicionarLinhaMedida();
