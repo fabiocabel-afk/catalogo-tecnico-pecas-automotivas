@@ -1,17 +1,16 @@
 {
-  "name": "Catálogo Técnico de Peças",
+  "name": "Catálogo Técnico PWA",
   "short_name": "Catálogo",
-  "description": "Aplicativo para registro e consulta de peças e medidas.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#2563eb",
-  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3208/3208714.png",
+      "src": "./favicon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
