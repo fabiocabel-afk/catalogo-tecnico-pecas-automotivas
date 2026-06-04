@@ -16,6 +16,9 @@
             --border: #e2e8f0;
             --danger: #ef4444;
             --warning: #f59e0b;
+            /* Nova variável para sombras suaves e modernas */
+            --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.03), 0 1px 2px rgba(15, 23, 42, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
         }
 
         * {
@@ -44,7 +47,8 @@
             border-bottom: 1px solid var(--border);
             z-index: 10;
             position: relative;
-            height: 52px; /* Altura exata definida para controle do alinhamento das modais */
+            height: 52px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
         }
 
         .header-brand {
@@ -140,16 +144,22 @@
             flex-direction: column;
             overflow: hidden;
             position: relative;
+            padding-top: 0.4rem; /* Pequeno respiro inicial abaixo do header */
         }
 
+        /* 1. CONTAINER DA IMAGEM ATUALIZADO */
         .image-viewer {
-            height: 40vh;
-            background: #000;
+            height: 38vh;
+            background: #ffffff; /* Fundo branco para visual limpo estilo e-commerce */
             position: relative;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin: 0.4rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
 
         .image-slider {
@@ -166,6 +176,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            padding: 0.5rem;
         }
 
         .slide img {
@@ -174,64 +185,97 @@
             object-fit: contain;
         }
 
+        .no-image {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
         .dots-container {
             position: absolute;
-            bottom: 10px;
+            bottom: 12px;
             display: flex;
-            gap: 5px;
+            gap: 6px;
+            background: rgba(15, 23, 42, 0.08);
+            padding: 4px 8px;
+            border-radius: 20px;
         }
 
         .dot {
-            width: 8px;
-            height: 8px;
-            background: rgba(255,255,255,0.5);
+            width: 6px;
+            height: 6px;
+            background: rgba(15, 23, 42, 0.2);
             border-radius: 50%;
+            transition: background 0.2s;
         }
 
         .dot.active {
-            background: #fff;
+            background: var(--primary);
+            width: 12px; /* Efeito esticado moderno no indicador ativo */
+            border-radius: 3px;
         }
 
-        .piece-info {
+        /* 2. NOVO CONTAINER DE INFORMAÇÕES (NOME, CÓDIGO, ÍCONE) */
+        .piece-info-card {
             background: var(--surface);
+            margin: 0.4rem 0.8rem;
             padding: 1rem;
-            border-bottom: 1px solid var(--border);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
         }
 
         .title-container {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            gap: 0.5rem;
+            align-items: flex-start;
+            gap: 0.75rem;
         }
 
         .piece-title {
-            font-size: 1.2rem;
-            font-weight: bold;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text);
             word-break: break-word;
+            line-height: 1.3;
         }
 
         .info-icon-btn {
-            background: none;
+            background: rgba(37, 99, 235, 0.08);
             border: none;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             color: var(--primary);
             cursor: pointer;
-            padding: 0.2rem;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
             display: none;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .info-icon-btn:active {
+            background: rgba(37, 99, 235, 0.18);
         }
 
         .piece-code {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 500;
             color: var(--text-secondary);
-            margin-top: 0.25rem;
         }
 
-        .measurements-container {
+        /* 3. CONTAINER DA TABELA ATUALIZADO */
+        .measurements-card-container {
             flex: 1;
             background: var(--surface);
+            margin: 0.4rem 0.8rem 0.8rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
             overflow-y: auto;
             position: relative;
         }
@@ -247,10 +291,11 @@
             top: 0;
             background: #f1f5f9;
             z-index: 2;
+            box-shadow: 0 1px 0 var(--border);
         }
 
         th, td {
-            padding: 0.75rem 1rem;
+            padding: 0.8rem 1rem;
             border-bottom: 1px solid var(--border);
             font-size: 0.9rem;
         }
@@ -258,6 +303,17 @@
         th {
             font-weight: 600;
             color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none; /* Remove borda da última linha para casar com o contorno arredondado */
+        }
+
+        tbody tr:active {
+            background: #f8fafc;
         }
 
         /* MODAIS FIXADAS LOGO ABAIXO DO HEADER PRINCIPAL */
@@ -267,9 +323,10 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.4);
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(2px);
             display: flex;
-            align-items: flex-start; /* Fixa o conteúdo alinhado ao topo */
+            align-items: flex-start;
             justify-content: center;
             z-index: 100;
             visibility: hidden;
@@ -286,18 +343,16 @@
             background: var(--surface);
             width: 95%;
             max-width: 500px;
-            /* margin-top: garante o encaixe perfeito logo abaixo do header */
             margin-top: 56px; 
-            /* max-height reajustado para descontar o espaço que sobrou na tela do celular */
             max-height: calc(100vh - 70px);
             border-radius: 12px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-md), 0 20px 25px -5px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
         }
 
-        /* Conteiner Superior Fixo dentro do Cadastro/Edição */
         .modal-fixed-header {
             padding: 1.2rem 1.2rem 0 1.2rem;
             background: var(--surface);
@@ -498,7 +553,7 @@
             <div class="dots-container" id="dotsContainer"></div>
         </div>
 
-        <div class="piece-info">
+        <div class="piece-info-card">
             <div class="title-container">
                 <div class="piece-title" id="viewNome">Nenhuma peça cadastrada</div>
                 <button class="info-icon-btn" id="infoIconBtn" onclick="openInfoModal()">ⓘ</button>
@@ -506,7 +561,7 @@
             <div class="piece-code" id="viewCodigo">Código: --</div>
         </div>
 
-        <div class="measurements-container">
+        <div class="measurements-card-container">
             <table>
                 <thead>
                     <tr>
@@ -691,7 +746,6 @@
             });
         }
 
-        // GESTOS (SWIPE)
         let touchStartX = 0;
         let touchStartY = 0;
         const container = document.getElementById('app-container');
@@ -1032,6 +1086,10 @@
             fotosTemporariasEdicao.splice(index, 1);
             renderizarPainelFotosEdicao();
             document.getElementById('formFotos').value = '';
+        }
+
+        function adicionarLinidaMedida() {
+            adicionarLinhaMedidaComValores("", "", "mm");
         }
 
         function adicionarLinhaMedida() {
