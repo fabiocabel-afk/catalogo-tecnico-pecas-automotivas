@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Catálogo Técnico PWA</title>
     <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="apple-touch-icon" href="./favicon.png">
     <link rel="manifest" href="./manifest.json">
     <style>
         :root {
@@ -686,7 +687,7 @@
                     <button type="button" class="form-tab-btn active" onclick="switchTab('tab-peca')">Peça</button>
                     <button type="button" class="form-tab-btn" onclick="switchTab('tab-imagens')">Imagens</button>
                     <button type="button" class="form-tab-btn" onclick="switchTab('tab-medidas')">Medidas</button>
-                    <button type="button" class="form-tab-btn" onclick="switchTab('tab-informacoes')">Info</button>
+                    <button type="button" class="form-tab-btn" onclick="switchTab('tab-informacoes')">Informações</button>
                 </div>
             </div>
 
@@ -859,12 +860,10 @@
             });
         }
 
-        // LÓGICA DE COMPARTILHAMENTO DE Info POR TEXTO (FORMATO WHATSAPP)
         function compartilharPecaAtual() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
 
-            // Montagem da mensagem estruturada com marcação de negrito nativa do WhatsApp (*)
             let msg = `*Código do Produto:* ${peca.codigo}\n`;
             msg += `*Nome do Produto:* ${peca.nome}\n\n`;
 
@@ -882,14 +881,12 @@
 
             msg += `_Enviado via Catálogo Técnico_`;
 
-            // Tenta usar o compartilhamento nativo do sistema operacional (celulares)
             if (navigator.share) {
                 navigator.share({
                     title: `Dados do Produto - ${peca.codigo}`,
                     text: msg
                 }).catch(err => console.log("Compartilhamento cancelado ou erro: ", err));
             } else {
-                // Alternativa (Fallback) para PCs ou navegadores sem suporte: Copia o texto para a área de transferência
                 navigator.clipboard.writeText(msg).then(() => {
                     alert("Dados copiados para a área de transferência! Prontos para colar (Ctrl+V) em qualquer mensagem.");
                 }).catch(err => {
@@ -998,8 +995,13 @@
             reader.onerror = error => reject(error);
         });
 
+        // RECONSTRUÇÃO EM TEMPO REAL CORRIGIDA (EVITA CONFLITO COM ASYNC DB)
         async function handleNovaMedidaInline(selectElement) {
             if (selectElement.value !== "NOVA") return;
+
+            const todasAsLinhas = Array.from(document.querySelectorAll('.measurement-row-form'));
+            const linhaPai = selectElement.closest('.measurement-row-form');
+            const indiceAlvo = todasAsLinhas.indexOf(linhaPai);
 
             const novoNome = prompt("Digite o nome da nova medida (Ex: Diâmetro Total, Espessura):");
             
@@ -1010,38 +1012,37 @@
 
             const nomeFormatado = novoNome.trim();
 
-            if (nomesMedidasExistentes.includes(nomeFormatado)) {
-                alert("Esta medida já existe na lista!");
-                selectElement.value = nomeFormatado;
-                return;
-            }
-
-            const tx = db.transaction("nomesMedidas", "readwrite");
-            tx.objectStore("nomesMedidas").put({ nome: nomeFormatado });
-
-            tx.onsuccess = () => {
+            // Atualiza imediatamente o array local para evitar delay assíncrono
+            if (!nomesMedidasExistentes.includes(nomeFormatado)) {
                 nomesMedidasExistentes.push(nomeFormatado);
                 nomesMedidasExistentes.sort();
+                
+                // Grava em background no banco IndexedDB
+                const tx = db.transaction("nomesMedidas", "readwrite");
+                tx.objectStore("nomesMedidas").put({ nome: nomeFormatado });
+            }
 
-                const todosSelects = document.querySelectorAll('.medida-nome-select');
-                todosSelects.forEach(sel => {
-                    const valorAtual = sel.value;
-                    
-                    let novasOpcoes = `<option value="">Medida</option>`;
-                    nomesMedidasExistentes.forEach(n => {
-                        novasOpcoes += `<option value="${n}">${n}</option>`;
-                    });
-                    novasOpcoes += `<option value="NOVA" style="color: blue; font-weight: bold;">[+ Nova Opção]</option>`;
-                    
-                    sel.innerHTML = novasOpcoes;
-                    
-                    if (sel === selectElement) {
-                        sel.value = nomeFormatado;
-                    } else {
-                        sel.value = valorAtual;
-                    }
+            // Mapeia os valores atuais que o usuário já digitou nas outras linhas
+            const valoresAtuais = todasAsLinhas.map(row => row.querySelector('.medida-nome-select').value);
+
+            // Reconstrói as opções de todos os dropdowns com a nova inclusão
+            const todosSelects = document.querySelectorAll('.medida-nome-select');
+            todosSelects.forEach((sel, idx) => {
+                let novasOpcoes = `<option value="">Medida</option>`;
+                nomesMedidasExistentes.forEach(n => {
+                    novasOpcoes += `<option value="${n}">${n}</option>`;
                 });
-            };
+                novasOpcoes += `<option value="NOVA" style="color: blue; font-weight: bold;">[+ Nova Opção]</option>`;
+                
+                sel.innerHTML = novasOpcoes;
+                
+                // Aplica a nova seleção na linha correspondente
+                if (idx === indiceAlvo) {
+                    sel.value = nomeFormatado;
+                } else {
+                    sel.value = valoresAtuais[idx] === "NOVA" ? "" : valoresAtuais[idx];
+                }
+            });
         }
 
         async function salvarPeca(e) {
@@ -1073,14 +1074,14 @@
             rows.forEach(row => {
                 const selectNome = row.querySelector('.medida-nome-select').value;
                 const valor = row.querySelector('.medida-valor').value;
-                const unidade = row.querySelector('.medida-unidade').value;
+                const unidad = row.querySelector('.medida-unidade').value;
 
                 if (selectNome === "" || selectNome === "NOVA") {
                     erroMedidaVazia = true;
                     return;
                 }
                 if (selectNome && valor) {
-                    medidas.push({ nome: selectNome, valor, unidade });
+                    medidas.push({ nome: selectNome, valor, unidade: unidad });
                 }
             });
 
@@ -1101,7 +1102,7 @@
             let request = id ? storePeca.put({...dadosPeca, id: parseInt(id)}) : storePeca.add(dadosPeca);
 
             request.onsuccess = (evt) => {
-                alert(id ? "Peça updated!" : "Peça cadastrada!");
+                alert(id ? "Peça atualizada!" : "Peça cadastrada!");
                 closeModal('cadastroModal');
                 const idFoco = id ? parseInt(id) : evt.target.result;
                 carregarPecas(idFoco);
