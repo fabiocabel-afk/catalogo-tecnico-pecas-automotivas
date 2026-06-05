@@ -87,7 +87,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             display: none;
             flex-direction: column;
-            min-width: 180px;
+            min-width: 200px;
             z-index: 99;
             overflow: hidden;
         }
@@ -111,7 +111,6 @@
             gap: 0.75rem;
         }
 
-        /* Estilização do círculo ao redor das imagens do menu */
         .menu-icon-circle {
             width: 26px;
             height: 26px;
@@ -642,6 +641,9 @@
             <button class="menu-item" onclick="execMenu('lista')">
                 <div class="menu-icon-circle"><img src="img/opcao_lista.png" alt="Lista"></div> Lista
             </button>
+            <button class="menu-item" onclick="execMenu('exportar_pdf')">
+                <div class="menu-icon-circle"><img src="img/opcao_lista.png" alt="Exportar PDF"></div> Exportar Catálogo (PDF)
+            </button>
             <button class="menu-item" onclick="execMenu('novo')">
                 <div class="menu-icon-circle"><img src="img/opcao_novo.png" alt="Novo Registro"></div> Novo Registro
             </button>
@@ -841,6 +843,7 @@
             document.getElementById('menuDropdown').classList.remove('active');
             if (opcao === 'buscar') openSearchModal();
             else if (opcao === 'lista') openListModal();
+            else if (opcao === 'exportar_pdf') exportarCatalogoPDF();
             else if (opcao === 'novo') openCadastroModal();
             else if (opcao === 'compartilhar') compartilharPecaAtual();
             else if (opcao === 'editar') prepararEdicao();
@@ -945,7 +948,6 @@
 
             msg += `_Enviado via Catálogo Técnico_`;
 
-            // Preparação dos arquivos (primeira imagem) para compartilhamento se suportado
             let shareData = {
                 title: `Dados da Peça - ${peca.codigo}`,
                 text: msg
@@ -973,6 +975,149 @@
                     alert("Não foi possível compartilhar ou copiar os dados automaticamente.");
                 });
             }
+        }
+
+        // NOVA FUNÇÃO: GERAÇÃO E EXPORTAÇÃO COMPLETA DO CATALOGO EM PDF
+        function exportarCatalogoPDF() {
+            if (pecas.length === 0) {
+                alert("Nenhuma peça cadastrada para exportar.");
+                return;
+            }
+
+            // Cria uma nova janela limpa para renderização do relatório/print
+            const printWindow = window.open('', '_blank');
+            
+            let htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Catálogo Técnico de Peças</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                        color: #0f172a;
+                        padding: 20px;
+                        margin: 0;
+                        background: #fff;
+                    }
+                    .header-print {
+                        text-align: center;
+                        border-bottom: 2px solid #64a0bc;
+                        padding-bottom: 12px;
+                        margin-bottom: 30px;
+                    }
+                    .header-print h1 {
+                        margin: 0;
+                        font-size: 24px;
+                        color: #1e3a8a;
+                    }
+                    .header-print p {
+                        margin: 4px 0 0 0;
+                        font-size: 13px;
+                        color: #64748b;
+                    }
+                    .peca-block {
+                        display: flex;
+                        gap: 25px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 8px;
+                        padding: 20px;
+                        margin-bottom: 25px;
+                        page-break-inside: avoid; /* Impede que uma peça quebre no meio da página */
+                    }
+                    .peca-img-box {
+                        width: 160px;
+                        height: 160px;
+                        border: 1px solid #cbd5e1;
+                        border-radius: 6px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: #f8fafc;
+                        flex-shrink: 0;
+                    }
+                    .peca-img-box img {
+                        max-width: 100%;
+                        max-height: 100%;
+                        object-fit: contain;
+                    }
+                    .peca-details {
+                        flex: 1;
+                    }
+                    .peca-text-format {
+                        white-space: pre-wrap;
+                        font-family: inherit;
+                        font-size: 14px;
+                        line-height: 1.5;
+                        margin: 0;
+                    }
+                    .no-img-text {
+                        color: #94a3b8;
+                        font-size: 12px;
+                        text-align: center;
+                    }
+                    @media print {
+                        body { padding: 0; }
+                        @page { margin: 1.5cm; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header-print">
+                    <h1>Catálogo Geral de Peças</h1>
+                    <p>Gerado em: ${new Date().toLocaleString('pt-BR')}</p>
+                </div>
+            `;
+
+            // Varre o array de peças montando o texto igual à opção compartilhar
+            pecas.forEach(peca => {
+                let txtPeca = `<strong>Nome da Peça:</strong> ${peca.nome}\n`;
+                txtPeca += `<strong>Código da Peça:</strong> ${peca.codigo}\n\n`;
+
+                if (peca.medidas && peca.medidas.length > 0) {
+                    txtPeca += `<strong>MEDIDAS:</strong>\n`;
+                    peca.medidas.forEach(m => {
+                        txtPeca += ` ◆ <strong>${m.nome}:</strong> ${m.valor} ${m.unidade}\n`;
+                    });
+                    txtPeca += `\n`;
+                }
+
+                if (peca.observacao && peca.observacao.trim() !== "") {
+                    txtPeca += `<strong>Observações:</strong> ${peca.observacao}\n\n`;
+                }
+
+                // Verifica se há imagens cadastradas para capturar a primeira
+                let imgTag = `<div class="no-img-text">Sem Imagem</div>`;
+                if (peca.fotos && peca.fotos.length > 0) {
+                    imgTag = `<img src="${peca.fotos[0]}" alt="Foto ${peca.nome}">`;
+                }
+
+                htmlContent += `
+                <div class="peca-block">
+                    <div class="peca-img-box">
+                        ${imgTag}
+                    </div>
+                    <div class="peca-details">
+                        <pre class="peca-text-format">${txtPeca}</pre>
+                    </div>
+                </div>
+                `;
+            });
+
+            htmlContent += `
+            </body>
+            </html>
+            `;
+
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+
+            // Aguarda o carregamento completo das imagens Base64 e aciona a impressão do sistema (PDF)
+            printWindow.onload = function() {
+                printWindow.focus();
+                printWindow.print();
+                // Opcional: printWindow.close(); // Fecha a janela após mandar imprimir
+            };
         }
 
         function openInfoModal() {
@@ -1198,7 +1343,7 @@
             let request = id ? storePeca.put({...dadosPeca, id: parseInt(id)}) : storePeca.add(dadosPeca);
 
             request.onsuccess = (evt) => {
-                alert(id ? "Peça updated!" : "Peça cadastrada!");
+                alert(id ? "Peça atualizada!" : "Peça cadastrada!");
                 closeModal('cadastroModal');
                 const idFoco = id ? parseInt(id) : evt.target.result;
                 carregarPecas(idFoco);
