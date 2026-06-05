@@ -87,7 +87,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             display: none;
             flex-direction: column;
-            min-width: 200px;
+            min-width: 220px;
             z-index: 99;
             overflow: hidden;
         }
@@ -642,6 +642,58 @@
             background: #e2e8f0;
             color: var(--text);
         }
+
+        /* Estilos para o painel de Backup */
+        .backup-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            padding: 0.5rem 0;
+        }
+        .backup-meta-box {
+            background: #f1f5f9;
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            border: 1px solid var(--border);
+        }
+        .backup-meta-box strong {
+            color: var(--text);
+        }
+        .backup-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        .backup-btn-export {
+            background: #2563eb;
+            color: white;
+        }
+        .backup-btn-export:active { background: #1d4ed8; }
+        .backup-btn-import {
+            background: #10b981;
+            color: white;
+        }
+        .backup-btn-import:active { background: #047857; }
+        .backup-btn-danger {
+            background: #fee2e2;
+            color: var(--danger);
+            border: 1px solid #fca5a5;
+        }
+        .backup-btn-danger:active { background: #ffeeec; }
     </style>
 </head>
 <body>
@@ -663,6 +715,9 @@
             </button>
             <button class="menu-item" onclick="execMenu('exportar_pdf')">
                 <div class="menu-icon-circle"><img src="img/opcao_catalogo.png" alt="Gerar Catálogo"></div> Gerar Catálogo
+            </button>
+            <button class="menu-item" onclick="execMenu('backup')">
+                <div class="menu-icon-circle"><img src="img/opcao_restauracao.png" alt="Backup"></div> Backup e Restauração
             </button>
             <button class="menu-item" onclick="execMenu('novo')">
                 <div class="menu-icon-circle"><img src="img/opcao_novo.png" alt="Novo Registro"></div> Novo Registro
@@ -754,6 +809,39 @@
             <div class="list-results" id="listModalResults"></div>
             <div style="display: flex; justify-content: center; margin-top: 1.2rem;">
                 <button class="btn-secondary" style="width:100%; padding:0.75rem; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="closeModal('listModal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="backupModal">
+        <div class="modal-content" style="overflow-y: auto; padding: 1.4rem;">
+            <h3 style="font-size:1.1rem; margin-bottom:0.8rem;">Backup e Restauração</h3>
+            
+            <div class="backup-panel">
+                <div class="backup-meta-box">
+                    <div><strong>Último Backup:</strong> <span id="lblUltimoBackup">--</span></div>
+                    <div><strong>Última Restauração:</strong> <span id="lblUltimoRestauro">--</span></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Gerar arquivo de segurança:</label>
+                    <button class="backup-btn backup-btn-export" onclick="exportarDadosSistema()">📥 Exportar Dados (Salvar Arquivo)</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Carregar dados salvos anteriormente:</label>
+                    <button class="backup-btn backup-btn-import" onclick="document.getElementById('inputImportFile').click()">📤 Importar Dados (Restaurar)</button>
+                    <input type="file" id="inputImportFile" accept=".json" style="display: none;" onchange="importarDadosSistema(this)">
+                </div>
+
+                <div class="form-group" style="margin-top: 0.5rem;">
+                    <label>Zerar aplicação:</label>
+                    <button class="backup-btn backup-btn-danger" onclick="limparTodoOSistemaComAviso()">✕ Excluir Todos os Dados</button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: center; margin-top: 1.2rem;">
+                <button class="btn-secondary" style="width:100%; padding:0.75rem; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="closeModal('backupModal')">Fechar</button>
             </div>
         </div>
     </div>
@@ -852,6 +940,7 @@
             request.onsuccess = (e) => {
                 db = e.target.result;
                 carregarPecas();
+                atualizarMetadadosBackupLabels();
             };
             request.onupgradeneeded = (e) => {
                 db = e.target.result;
@@ -882,6 +971,7 @@
             if (opcao === 'buscar') openSearchModal();
             else if (opcao === 'text') openListModal();
             else if (opcao === 'exportar_pdf') exportarCatalogoPDF();
+            else if (opcao === 'backup') openBackupModal();
             else if (opcao === 'novo') openCadastroModal();
             else if (opcao === 'compartilhar') compartilharPecaAtual();
             else if (opcao === 'editar') prepararEdicao();
@@ -1372,7 +1462,7 @@
             let request = id ? storePeca.put({...dadosPeca, id: parseInt(id)}) : storePeca.add(dadosPeca);
 
             request.onsuccess = (evt) => {
-                alert(id ? "Dados updated!" : "Peça cadastrada com sucesso!");
+                alert(id ? "Dados atualizados!" : "Peça cadastrada com sucesso!");
                 closeModal('cadastroModal');
                 const idFoco = id ? parseInt(id) : evt.target.result;
                 carregarPecas(idFoco);
@@ -1524,6 +1614,11 @@
             document.getElementById('listModal').classList.add('active');
         }
 
+        function openBackupModal() {
+            atualizarMetadadosBackupLabels();
+            document.getElementById('backupModal').classList.add('active');
+        }
+
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
         function handleSearchInput() {
@@ -1554,6 +1649,161 @@
                 });
             }
             resultsContainer.style.display = 'block';
+        }
+
+        // ==========================================
+        //  MECANISMOS DE BACKUP E RESTAURAÇÃO (JSON)
+        // ==========================================
+
+        function atualizarMetadadosBackupLabels() {
+            const bkp = localStorage.getItem('bkp_ultimo_backup') || '--';
+            const rst = localStorage.getItem('bkp_ultimo_restauro') || '--';
+            document.getElementById('lblUltimoBackup').innerText = bkp;
+            document.getElementById('lblUltimoRestauro').innerText = rst;
+        }
+
+        function exportarDadosSistema() {
+            if (pecas.length === 0 && nomesMedidasExistentes.length === 0) {
+                alert("Não existem registros ou configurações de medidas para exportar.");
+                return;
+            }
+
+            // Estrutura o pacote unificado de exportação
+            const pacoteBackup = {
+                versaoApp: "1.0 PWA",
+                dataGeracao: new Date().toLocaleString('pt-BR'),
+                nomesMedidas: nomesMedidasExistentes,
+                pecas: pecas
+            };
+
+            try {
+                const jsonString = JSON.stringify(pacoteBackup);
+                const blob = new Blob([jsonString], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                
+                // Força o download nativo do navegador
+                const linkProvisorio = document.createElement('a');
+                const dataFormatada = new Date().toISOString().slice(0,10);
+                linkProvisorio.download = `backup_catalogo_tecnico_${dataFormatada}.json`;
+                linkProvisorio.href = url;
+                document.body.appendChild(linkProvisorio);
+                linkProvisorio.click();
+                document.body.removeChild(linkProvisorio);
+                URL.revokeObjectURL(url);
+
+                // Registra o metadado temporal
+                const agora = new Date().toLocaleString('pt-BR');
+                localStorage.setItem('bkp_ultimo_backup', agora);
+                atualizarMetadadosBackupLabels();
+
+                alert("Backup exportado e baixado com sucesso em formato compactado unificado (.json)!");
+            } catch (err) {
+                console.error(err);
+                alert("Falha crítica ao empacotar arquivos do banco de dados.");
+            }
+        }
+
+        function importarDadosSistema(input) {
+            const arquivo = input.files[0];
+            if (!arquivo) return;
+
+            const leitor = new FileReader();
+            leitor.onload = async function(e) {
+                try {
+                    const dadosCarregados = JSON.parse(e.target.result);
+                    
+                    // Validação estrutural simples do arquivo carregado
+                    if (!dadosCarregados.hasOwnProperty('pecas') || !dadosCarregados.hasOwnProperty('nomesMedidas')) {
+                        alert("Arquivo inválido! O documento selecionado não possui a assinatura estrutural deste catálogo técnico.");
+                        input.value = "";
+                        return;
+                    }
+
+                    const confirmacao = confirm(`ATENÇÃO:\nPara carregar novos dados e evitar duplicações/conflitos, o sistema será completamente limpo antes da importação.\n\nDeseja restaurar as ${dadosCarregados.pecas.length} peças contidas no arquivo?`);
+                    
+                    if (!confirmacao) {
+                        input.value = "";
+                        return;
+                    }
+
+                    // 1. Limpeza total pré-carregamento
+                    await executarLimpezaBancoDados();
+
+                    // 2. Inserção incremental dos novos registros de Medidas Customizadas
+                    if (dadosCarregados.nomesMedidas.length > 0) {
+                        const txMedidas = db.transaction("nomesMedidas", "readwrite");
+                        const storeMedidas = txMedidas.objectStore("nomesMedidas");
+                        dadosCarregados.nomesMedidas.forEach(m => {
+                            storeMedidas.put({ nome: m });
+                        });
+                    }
+
+                    // 3. Inserção incremental das Peças com fotos e sub-tabelas
+                    if (dadosCarregados.pecas.length > 0) {
+                        const txPecas = db.transaction("pecas", "readwrite");
+                        const storePecas = txPecas.objectStore("pecas");
+                        dadosCarregados.pecas.forEach(peca => {
+                            // Deleta a key primária antiga para o IndexedDB gerar de forma limpa e sequencial
+                            delete peca.id; 
+                            storePecas.add(peca);
+                        });
+                    }
+
+                    // Registra o metadado temporal da restauração
+                    const agora = new Date().toLocaleString('pt-BR');
+                    localStorage.setItem('bkp_ultimo_restauro', agora);
+                    
+                    alert("Restauração de sistema concluída com sucesso!");
+                    currentIndex = 0;
+                    currentPhotoIndex = 0;
+                    carregarPecas();
+                    closeModal('backupModal');
+
+                } catch (err) {
+                    console.error(err);
+                    alert("Erro interno ao ler arquivo. Arquivo corrompido ou formato ilegível.");
+                } finally {
+                    input.value = ""; // Reseta o input de arquivo
+                }
+            };
+            leitor.readAsText(arquivo);
+        }
+
+        function executarLimpezaBancoDados() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
+                const storePecas = tx.objectStore("pecas");
+                const storeMedidas = tx.objectStore("nomesMedidas");
+                
+                storePecas.clear();
+                storeMedidas.clear();
+
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = (e) => reject(e);
+            });
+        }
+
+        async function limparTodoOSistemaComAviso() {
+            const confirmacao1 = confirm("⚠️ Alerta Crítico:\nVocê tem certeza absoluta que deseja apagar TODAS as peças e configurações de medidas cadastradas do dispositivo?");
+            if (!confirmacao1) return;
+
+            const confirmacao2 = prompt("Para confirmar a exclusão permanente de todo o sistema, digite o termo abaixo:\nEXCLUIR");
+            if (confirmacao2 !== "EXCLUIR" && confirmacao2 !== "excluir") {
+                alert("Confirmação inválida. Operação abortada.");
+                return;
+            }
+
+            try {
+                await executarLimpezaBancoDados();
+                alert("O sistema foi totalmente resetado para as configurações de fábrica.");
+                currentIndex = 0;
+                currentPhotoIndex = 0;
+                carregarPecas();
+                closeModal('backupModal');
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao tentar limpar o banco de dados.");
+            }
         }
 
         window.onload = initDB;
