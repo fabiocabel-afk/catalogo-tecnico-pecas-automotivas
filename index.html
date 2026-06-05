@@ -153,7 +153,7 @@
             transition: transform 0.3s ease-out;
         }
 
-        /* Classes de transição vertical */
+        /* Classes de transição vertical corrigidas para acompanhar o sentido físico */
         .image-slider.slide-up {
             transform: translateY(-100%) !important;
             transition: transform 0.25s ease-in;
@@ -271,7 +271,7 @@
         }
 
         .img-arrow-btn.left { left: 8px; }
-        .img-arrow-btn.right { right: 8px; }
+        .img-arrow-btn.right { right: right: 8px; }
 
         .img-arrow-btn:hover {
             background: rgba(15, 23, 42, 0.8);
@@ -668,7 +668,7 @@
                 <p id="infoObservacaoText" style="margin-top: 4px; font-size: 0.95rem; color: var(--text);"></p>
             </div>
             <div class="info-popup-section" style="border-left: 4px solid var(--primary);">
-                <strong>Histórico de Alteração:</strong>
+                <strong>Medidas Fornecidas por:</strong>
                 <p id="infoMetaText" style="margin-top: 4px; font-size: 0.85rem; color: var(--text-secondary);"></p>
             </div>
             <div style="display: flex; justify-content: center; margin-top: 1rem;">
@@ -734,12 +734,12 @@
                     </div>
                     <div class="form-tab-content" id="tab-informacoes">
                         <div class="form-group">
-                            <label>Responsável pela Alteração *</label>
-                            <input type="text" id="formResponsavel" required>
-                        </div>
-                        <div class="form-group">
                             <label>Observações (Máx 200 caract.)</label>
                             <textarea id="formObservacao" maxlength="200" rows="4"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Responsável pelas Medidas *</label>
+                            <input type="text" id="formResponsavel" required>
                         </div>
                     </div>
                 </div>
@@ -807,7 +807,7 @@
             tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
         }
 
-        // GESTOS TOUCH COM TRANSIÇÃO VERTICAL CORRIGIDA
+        // GESTOS TOUCH COM DIREÇÃO FÍSICA INVERTIDA CORRETAMENTE
         let touchStartX = 0;
         let touchStartY = 0;
         let estaAnimandoPeca = false; 
@@ -835,9 +835,9 @@
             else {
                 if (Math.abs(diffY) > 40) {
                     if (diffY > 0) {
-                        animarEMudarPeca(-1); // Desliza para baixo (Peça Anterior)
+                        animarEMudarPeca(-1); // Arrasto para BAIXO traz a peça ANTERIOR surgindo de cima para baixo
                     } else {
-                        animarEMudarPeca(1);  // Desliza para cima (Próxima Peça)
+                        animarEMudarPeca(1);  // Arrasto para CIMA traz a PRÓXIMA peça surgindo de baixo para cima
                     }
                 }
             }
@@ -879,7 +879,6 @@
             });
         }
 
-        // FORMATO DE COMPARTILHAMENTO ATUALIZADO
         function compartilharPecaAtual() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
@@ -915,11 +914,12 @@
             }
         }
 
+        // ALTERAÇÃO DO HISTÓRICO DE MODIFICAÇÃO (MUDANÇA DE TEXTO CONFORME ADICIONADO)
         function openInfoModal() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
             document.getElementById('infoModalTitle').innerText = peca.nome;
-            document.getElementById('infoMetaText').innerText = `Modificado por: ${peca.responsavel || '--'} em ${peca.dataHora}`;
+            document.getElementById('infoMetaText').innerText = `${peca.responsavel || '--'} em ${peca.dataHora}`;
             const obsContainer = document.getElementById('infoObsContainer');
             const obsText = document.getElementById('infoObservacaoText');
 
@@ -971,17 +971,19 @@
         }
 
         function mudarPeca(direcao) {
+            // Se for pelos botões manuais, a lógica do arrasto físico se aplica de maneira equivalente
             animarEMudarPeca(direcao);
         }
 
-        // FUNÇÃO DE TRANSIÇÃO VERTICAL CONDIZENTE COM O ARRASTO
+        // LÓGICA DE SENTIDO COMPATÍVEL COM O ARRASTO FÍSICO
         function animarEMudarPeca(direcao) {
             if (pecas.length <= 1 || estaAnimandoPeca) return;
             
             estaAnimandoPeca = true;
             const slider = document.getElementById('imageSlider');
             
-            // Aplica a classe correspondente ao movimento vertical
+            // Inversão física: Se move para -1 (peça anterior, arrasto para baixo), o slider desce ('slide-down').
+            // Se move para 1 (próxima peça, arrasto para cima), o slider sobe ('slide-up').
             if (direcao === 1) {
                 slider.classList.add('slide-up');
             } else {
@@ -989,15 +991,12 @@
             }
 
             setTimeout(() => {
-                // Calcula o próximo índice
                 currentIndex += direcao;
                 if (currentIndex < 0) currentIndex = pecas.length - 1; 
                 if (currentIndex >= pecas.length) currentIndex = 0;
                 
-                // Reseta para a PRIMEIRA foto do novo produto diretamente (sem rebobinar)
                 currentPhotoIndex = 0; 
                 
-                // Remove as classes de animação e renderiza a nova peça
                 slider.classList.remove('slide-up', 'slide-down');
                 exibirPecaAtual();
                 
@@ -1143,7 +1142,7 @@
             let request = id ? storePeca.put({...dadosPeca, id: parseInt(id)}) : storePeca.add(dadosPeca);
 
             request.onsuccess = (evt) => {
-                alert(id ? "Peça atualizada!" : "Peça cadastrada!");
+                alert(id ? "Peça updated!" : "Peça cadastrada!");
                 closeModal('cadastroModal');
                 const idFoco = id ? parseInt(id) : evt.target.result;
                 carregarPecas(idFoco);
@@ -1289,7 +1288,7 @@
                     item.innerHTML = `<strong>${p.codigo}</strong> - ${p.nome}`;
                     item.onclick = () => {
                         currentIndex = pecas.findIndex(item => item.id === p.id);
-                        currentPhotoIndex = 0; // Garante reset ao buscar
+                        currentPhotoIndex = 0;
                         exibirPecaAtual();
                         closeModal('searchModal');
                     };
