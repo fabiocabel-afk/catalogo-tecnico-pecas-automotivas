@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Catálogo Técnico PWA</title>
-    <link rel="icon" type="image/png" href="./favicon.png">
+    <link class="favicon-link" rel="icon" type="image/png" href="./favicon.png">
     <link rel="apple-touch-icon" href="./favicon.png">
     <link rel="manifest" href="./manifest.json">
     <style>
@@ -151,6 +151,17 @@
             height: 100%;
             width: 100%;
             transition: transform 0.3s ease-out;
+        }
+
+        /* Classes de transição vertical */
+        .image-slider.slide-up {
+            transform: translateY(-100%) !important;
+            transition: transform 0.25s ease-in;
+        }
+
+        .image-slider.slide-down {
+            transform: translateY(100%) !important;
+            transition: transform 0.25s ease-in;
         }
 
         .slide {
@@ -696,12 +707,12 @@
                 <div class="cadastro-form-body">
                     <div class="form-tab-content active" id="tab-peca">
                         <div class="form-group">
-                            <label>Código da Empresa *</label>
-                            <input type="text" id="formCodigo" required>
-                        </div>
-                        <div class="form-group">
                             <label>Nome do Produto *</label>
                             <input type="text" id="formNome" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Código do Produto *</label>
+                            <input type="text" id="formCodigo" required>
                         </div>
                     </div>
                     <div class="form-tab-content" id="tab-imagens">
@@ -796,9 +807,10 @@
             tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
         }
 
-        // GESTOS TOUCH
+        // GESTOS TOUCH COM TRANSIÇÃO VERTICAL CORRIGIDA
         let touchStartX = 0;
         let touchStartY = 0;
+        let estaAnimandoPeca = false; 
         const viewerElement = document.getElementById('imageViewer');
 
         viewerElement.addEventListener('touchstart', e => {
@@ -807,18 +819,26 @@
         }, {passive: true});
 
         viewerElement.addEventListener('touchend', e => {
+            if (estaAnimandoPeca) return;
+
             const diffX = e.changedTouches[0].screenX - touchStartX;
             const diffY = e.changedTouches[0].screenY - touchStartY;
             
+            // Movimento Horizontal (Fotos da mesma peça)
             if (Math.abs(diffX) > Math.abs(diffY)) {
                 if (Math.abs(diffX) > 40) {
                     if (diffX > 0) mudarFoto(-1);
                     else mudarFoto(1);
                 }
-            } else {
+            } 
+            // Movimento Vertical (Mudança de Peça)
+            else {
                 if (Math.abs(diffY) > 40) {
-                    if (diffY > 0) mudarPeca(-1);
-                    else mudarPeca(1);
+                    if (diffY > 0) {
+                        animarEMudarPeca(-1); // Desliza para baixo (Peça Anterior)
+                    } else {
+                        animarEMudarPeca(1);  // Desliza para cima (Próxima Peça)
+                    }
                 }
             }
         }, {passive: true});
@@ -841,7 +861,6 @@
             }
             
             const peca = pecas[currentIndex];
-            currentPhotoIndex = 0;
 
             document.getElementById('viewNome').innerText = peca.nome;
             document.getElementById('viewCodigo').innerText = `Código: ${peca.codigo}`;
@@ -860,17 +879,18 @@
             });
         }
 
+        // FORMATO DE COMPARTILHAMENTO ATUALIZADO
         function compartilharPecaAtual() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
 
-            let msg = `*Código do Produto:* ${peca.codigo}\n`;
-            msg += `*Nome do Produto:* ${peca.nome}\n\n`;
+            let msg = `*Nome do Produto:* ${peca.nome}\n`;
+            msg += `*Código do Produto:* ${peca.codigo}\n\n`;
 
             if (peca.medidas && peca.medidas.length > 0) {
-                msg += `*--- MEDIDAS ---*\n`;
+                msg += `*MEDIDAS:*\n`;
                 peca.medidas.forEach(m => {
-                    msg += `*${m.nome}:* ${m.valor} ${m.unidade}\n`;
+                    msg += ` ♦ *${m.nome}:* ${m.valor} ${m.unidade}\n`;
                 });
                 msg += `\n`;
             }
@@ -917,7 +937,7 @@
             const dotsContainer = document.getElementById('dotsContainer');
             slider.innerHTML = '';
             dotsContainer.innerHTML = '';
-            slider.style.transform = `translateX(0%)`;
+            slider.style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
 
             if(!fotos || fotos.length === 0) {
                 slider.innerHTML = `<div class="slide"><div class="no-image">Nenhuma imagem disponível</div></div>`;
@@ -931,7 +951,7 @@
                 slider.appendChild(slide);
 
                 const dot = document.createElement('div');
-                dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+                dot.className = `dot ${idx === currentPhotoIndex ? 'active' : ''}`;
                 dotsContainer.appendChild(dot);
             });
         }
@@ -951,11 +971,38 @@
         }
 
         function mudarPeca(direcao) {
-            if (pecas.length <= 1) return;
-            currentIndex += direcao;
-            if (currentIndex < 0) currentIndex = pecas.length - 1; 
-            if (currentIndex >= pecas.length) currentIndex = 0;
-            exibirPecaAtual();
+            animarEMudarPeca(direcao);
+        }
+
+        // FUNÇÃO DE TRANSIÇÃO VERTICAL CONDIZENTE COM O ARRASTO
+        function animarEMudarPeca(direcao) {
+            if (pecas.length <= 1 || estaAnimandoPeca) return;
+            
+            estaAnimandoPeca = true;
+            const slider = document.getElementById('imageSlider');
+            
+            // Aplica a classe correspondente ao movimento vertical
+            if (direcao === 1) {
+                slider.classList.add('slide-up');
+            } else {
+                slider.classList.add('slide-down');
+            }
+
+            setTimeout(() => {
+                // Calcula o próximo índice
+                currentIndex += direcao;
+                if (currentIndex < 0) currentIndex = pecas.length - 1; 
+                if (currentIndex >= pecas.length) currentIndex = 0;
+                
+                // Reseta para a PRIMEIRA foto do novo produto diretamente (sem rebobinar)
+                currentPhotoIndex = 0; 
+                
+                // Remove as classes de animação e renderiza a nova peça
+                slider.classList.remove('slide-up', 'slide-down');
+                exibirPecaAtual();
+                
+                estaAnimandoPeca = false;
+            }, 250);
         }
 
         function carregarPecas(focarId = null) {
@@ -995,7 +1042,6 @@
             reader.onerror = error => reject(error);
         });
 
-        // RECONSTRUÇÃO EM TEMPO REAL CORRIGIDA (EVITA CONFLITO COM ASYNC DB)
         async function handleNovaMedidaInline(selectElement) {
             if (selectElement.value !== "NOVA") return;
 
@@ -1012,20 +1058,16 @@
 
             const nomeFormatado = novoNome.trim();
 
-            // Atualiza imediatamente o array local para evitar delay assíncrono
             if (!nomesMedidasExistentes.includes(nomeFormatado)) {
                 nomesMedidasExistentes.push(nomeFormatado);
                 nomesMedidasExistentes.sort();
                 
-                // Grava em background no banco IndexedDB
                 const tx = db.transaction("nomesMedidas", "readwrite");
                 tx.objectStore("nomesMedidas").put({ nome: nomeFormatado });
             }
 
-            // Mapeia os valores atuais que o usuário já digitou nas outras linhas
             const valoresAtuais = todasAsLinhas.map(row => row.querySelector('.medida-nome-select').value);
 
-            // Reconstrói as opções de todos os dropdowns com a nova inclusão
             const todosSelects = document.querySelectorAll('.medida-nome-select');
             todosSelects.forEach((sel, idx) => {
                 let novasOpcoes = `<option value="">Medida</option>`;
@@ -1036,7 +1078,6 @@
                 
                 sel.innerHTML = novasOpcoes;
                 
-                // Aplica a nova seleção na linha correspondente
                 if (idx === indiceAlvo) {
                     sel.value = nomeFormatado;
                 } else {
@@ -1248,6 +1289,7 @@
                     item.innerHTML = `<strong>${p.codigo}</strong> - ${p.nome}`;
                     item.onclick = () => {
                         currentIndex = pecas.findIndex(item => item.id === p.id);
+                        currentPhotoIndex = 0; // Garante reset ao buscar
                         exibirPecaAtual();
                         closeModal('searchModal');
                     };
