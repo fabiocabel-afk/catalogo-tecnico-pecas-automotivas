@@ -185,6 +185,17 @@
             transition: transform 0.25s ease-in;
         }
 
+        /* Novas classes para o efeito inverso de entrada */
+        .image-slider.instant-bottom {
+            transform: translateY(100%) !important;
+            transition: none !important;
+        }
+
+        .image-slider.instant-top {
+            transform: translateY(-100%) !important;
+            transition: none !important;
+        }
+
         .slide {
             min-width: 100%;
             height: 100%;
@@ -869,11 +880,6 @@
         let estaAnimandoPeca = false; 
         const viewerElement = document.getElementById('imageViewer');
 
-        viewerElement.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartY = e.changedTouches[0].screenY;
-        }, {passive: true});
-
         viewerElement.addEventListener('touchend', e => {
             if (estaAnimandoPeca) return;
 
@@ -889,8 +895,10 @@
             else {
                 if (Math.abs(diffY) > 40) {
                     if (diffY > 0) {
+                        // Arrastou de CIMA para BAIXO: traz a peça ANTERIOR (-1) descendo
                         animarEMudarPeca(-1); 
                     } else {
+                        // Arrastou de BAIXO para CIMA: traz a PRÓXIMA peça (+1) subindo
                         animarEMudarPeca(1);  
                     }
                 }
@@ -1185,23 +1193,43 @@
             estaAnimandoPeca = true;
             const slider = document.getElementById('imageSlider');
             
+            // 1. Anima a peça atual saindo na direção do arrasto
             if (direcao === 1) {
-                slider.classList.add('slide-up');
+                slider.classList.add('slide-up'); // Sobe a atual
             } else {
-                slider.classList.add('slide-down');
+                slider.classList.add('slide-down'); // Desce a atual
             }
 
             setTimeout(() => {
+                // Atualiza o índice do array de peças
                 currentIndex += direcao;
                 if (currentIndex < 0) currentIndex = pecas.length - 1; 
                 if (currentIndex >= pecas.length) currentIndex = 0;
                 
                 currentPhotoIndex = 0; 
                 
+                // 2. Remove a animação de saída e posiciona a nova peça no lado oposto instantaneamente
                 slider.classList.remove('slide-up', 'slide-down');
+                if (direcao === 1) {
+                    slider.classList.add('instant-bottom'); // Coloca a nova no fundo sem transição
+                } else {
+                    slider.classList.add('instant-top'); // Coloca a nova no topo sem transição
+                }
+
+                // Força o navegador a renderizar a nova posição antes de aplicar a animação de entrada
+                slider.offsetHeight; 
+
+                // 3. Renderiza o conteúdo da nova peça
                 exibirPecaAtual();
+
+                // 4. Faz a nova peça deslizar suavemente para a posição central original
+                slider.classList.remove('instant-bottom', 'instant-top');
                 
-                estaAnimandoPeca = false;
+                // Libera o slider para novos gestos após o término da transição central
+                setTimeout(() => {
+                    estaAnimandoPeca = false;
+                }, 250);
+
             }, 250);
         }
 
