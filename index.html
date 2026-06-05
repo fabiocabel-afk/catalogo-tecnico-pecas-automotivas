@@ -174,7 +174,6 @@
             transition: transform 0.25s ease-out;
         }
 
-        /* Classes de animação vertical sincronizadas */
         .image-slider.slide-up {
             transform: translateY(-100%) !important;
             transition: transform 0.25s ease-in !important;
@@ -878,7 +877,6 @@
             tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
         }
 
-        // GESTOS TOUCH CORRIGIDOS
         let touchStartX = 0;
         let touchStartY = 0;
         let estaAnimandoPeca = false; 
@@ -952,8 +950,9 @@
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
 
-            let msg = `*Nome da Peça:* ${peca.nome}\n`;
-            msg += `*Código da Peça:* ${peca.codigo}\n\n`;
+            // Atualizado rótulos para "Peça" e "Código"
+            let msg = `*Peça:* ${peca.nome}\n`;
+            msg += `*Código:* ${peca.codigo}\n\n`;
 
             if (peca.medidas && peca.medidas.length > 0) {
                 msg += `*MEDIDAS:*\n`;
@@ -1006,6 +1005,7 @@
 
             const printWindow = window.open('', '_blank');
             
+            // Otimização das margens horizontais, internas e distância entre os containers
             let htmlContent = `
             <!DOCTYPE html>
             <html>
@@ -1015,40 +1015,40 @@
                     body {
                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
                         color: #0f172a;
-                        padding: 20px;
+                        padding: 12px;
                         margin: 0;
                         background: #fff;
                     }
                     .header-print {
                         text-align: center;
                         border-bottom: 2px solid #64a0bc;
-                        padding-bottom: 12px;
-                        margin-bottom: 30px;
+                        padding-bottom: 8px;
+                        margin-bottom: 15px;
                     }
                     .header-print h1 {
                         margin: 0;
-                        font-size: 24px;
+                        font-size: 20px;
                         color: #1e3a8a;
                     }
                     .header-print p {
                         margin: 4px 0 0 0;
-                        font-size: 13px;
+                        font-size: 11px;
                         color: #64748b;
                     }
                     .peca-block {
                         display: flex;
-                        gap: 25px;
+                        gap: 12px;
                         border: 1px solid #e2e8f0;
-                        border-radius: 8px;
-                        padding: 20px;
-                        margin-bottom: 25px;
+                        border-radius: 6px;
+                        padding: 10px 12px;
+                        margin-bottom: 10px;
                         page-break-inside: avoid;
                     }
                     .peca-img-box {
-                        width: 160px;
-                        height: 160px;
+                        width: 110px;
+                        height: 110px;
                         border: 1px solid #cbd5e1;
-                        border-radius: 6px;
+                        border-radius: 4px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -1066,18 +1066,18 @@
                     .peca-text-format {
                         white-space: pre-wrap;
                         font-family: inherit;
-                        font-size: 14px;
-                        line-height: 1.5;
+                        font-size: 13px;
+                        line-height: 1.4;
                         margin: 0;
                     }
                     .no-img-text {
                         color: #94a3b8;
-                        font-size: 12px;
+                        font-size: 11px;
                         text-align: center;
                     }
                     @media print {
                         body { padding: 0; }
-                        @page { margin: 1.5cm; }
+                        @page { margin: 1cm 0.8cm; }
                     }
                 </style>
             </head>
@@ -1089,8 +1089,9 @@
             `;
 
             pecas.forEach(peca => {
-                let txtPeca = `<strong>Nome da Peça:</strong> ${peca.nome}\n`;
-                txtPeca += `<strong>Código da Peça:</strong> ${peca.codigo}\n\n`;
+                // Atualizado rótulos para "Peça" e "Código"
+                let txtPeca = `<strong>Peça:</strong> ${peca.nome}\n`;
+                txtPeca += `<strong>Código:</strong> ${peca.codigo}\n\n`;
 
                 if (peca.medidas && peca.medidas.length > 0) {
                     txtPeca += `<strong>MEDIDAS:</strong>\n`;
@@ -1194,21 +1195,18 @@
             animarEMudarPeca(direcao);
         }
 
-        // FUNÇÃO DE TRANSIÇÃO BIDIRECIONAL TOTALMENTE REESCRITA E CORRIGIDA
         function animarEMudarPeca(direcao) {
             if (pecas.length <= 1 || estaAnimandoPeca) return;
             
             estaAnimandoPeca = true;
             const slider = document.getElementById('imageSlider');
             
-            // 1. Desliza a peça atual para fora na direção do movimento do dedo
             if (direcao === 1) {
                 slider.classList.add('slide-up'); 
             } else {
                 slider.classList.add('slide-down'); 
             }
 
-            // Aguarda o término da animação de saída da peça antiga
             setTimeout(() => {
                 currentIndex += direcao;
                 if (currentIndex < 0) currentIndex = pecas.length - 1; 
@@ -1216,7 +1214,6 @@
                 
                 currentPhotoIndex = 0; 
                 
-                // 2. Remove as classes de saída e reposiciona a nova peça no lado oposto instantaneamente
                 slider.classList.remove('slide-up', 'slide-down');
                 if (direcao === 1) {
                     slider.classList.add('instant-bottom'); 
@@ -1224,20 +1221,16 @@
                     slider.classList.add('instant-top'); 
                 }
 
-                // Força o fluxo de renderização do navegador (Reflow)
                 slider.offsetHeight; 
 
-                // 3. Atualiza os dados estruturais da tela com os dados da nova peça
                 exibirPecaAtual();
 
-                // 4. Remove o posicionamento fixo e ativa a transição suave de entrada retornando ao centro
                 slider.classList.remove('instant-bottom', 'instant-top');
                 slider.classList.add('slide-in');
 
-                // Aguarda o encerramento completo da animação de entrada central
                 setTimeout(() => {
                     slider.classList.remove('slide-in');
-                    estaAnimandoPeca = false; // Desbloqueia o Slider para o próximo arrasto
+                    estaAnimandoPeca = false; 
                 }, 250);
 
             }, 250);
@@ -1381,7 +1374,7 @@
             let request = id ? storePeca.put({...dadosPeca, id: parseInt(id)}) : storePeca.add(dadosPeca);
 
             request.onsuccess = (evt) => {
-                alert(id ? "Peça updated!" : "Peça cadastrada!");
+                alert(id ? "Peça atualizada!" : "Peça cadastrada!");
                 closeModal('cadastroModal');
                 const idFoco = id ? parseInt(id) : evt.target.result;
                 carregarPecas(idFoco);
