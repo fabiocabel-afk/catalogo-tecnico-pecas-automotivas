@@ -122,7 +122,6 @@
             flex-shrink: 0;
         }
 
-        /* Classe específica para mudar o fundo do círculo do botão excluir */
         .menu-icon-circle.danger-circle {
             background-color: #B70006;
         }
@@ -172,20 +171,20 @@
             display: flex;
             height: 100%;
             width: 100%;
-            transition: transform 0.3s ease-out;
+            transition: transform 0.25s ease-out;
         }
 
+        /* Classes de animação vertical sincronizadas */
         .image-slider.slide-up {
             transform: translateY(-100%) !important;
-            transition: transform 0.25s ease-in;
+            transition: transform 0.25s ease-in !important;
         }
 
         .image-slider.slide-down {
             transform: translateY(100%) !important;
-            transition: transform 0.25s ease-in;
+            transition: transform 0.25s ease-in !important;
         }
 
-        /* Novas classes para o efeito inverso de entrada */
         .image-slider.instant-bottom {
             transform: translateY(100%) !important;
             transition: none !important;
@@ -194,6 +193,11 @@
         .image-slider.instant-top {
             transform: translateY(-100%) !important;
             transition: none !important;
+        }
+
+        .image-slider.slide-in {
+            transform: translateY(0%) !important;
+            transition: transform 0.25s ease-out !important;
         }
 
         .slide {
@@ -874,11 +878,16 @@
             tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
         }
 
-        // GESTOS TOUCH
+        // GESTOS TOUCH CORRIGIDOS
         let touchStartX = 0;
         let touchStartY = 0;
         let estaAnimandoPeca = false; 
         const viewerElement = document.getElementById('imageViewer');
+
+        viewerElement.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: true});
 
         viewerElement.addEventListener('touchend', e => {
             if (estaAnimandoPeca) return;
@@ -895,10 +904,8 @@
             else {
                 if (Math.abs(diffY) > 40) {
                     if (diffY > 0) {
-                        // Arrastou de CIMA para BAIXO: traz a peça ANTERIOR (-1) descendo
                         animarEMudarPeca(-1); 
                     } else {
-                        // Arrastou de BAIXO para CIMA: traz a PRÓXIMA peça (+1) subindo
                         animarEMudarPeca(1);  
                     }
                 }
@@ -1187,47 +1194,50 @@
             animarEMudarPeca(direcao);
         }
 
+        // FUNÇÃO DE TRANSIÇÃO BIDIRECIONAL TOTALMENTE REESCRITA E CORRIGIDA
         function animarEMudarPeca(direcao) {
             if (pecas.length <= 1 || estaAnimandoPeca) return;
             
             estaAnimandoPeca = true;
             const slider = document.getElementById('imageSlider');
             
-            // 1. Anima a peça atual saindo na direção do arrasto
+            // 1. Desliza a peça atual para fora na direção do movimento do dedo
             if (direcao === 1) {
-                slider.classList.add('slide-up'); // Sobe a atual
+                slider.classList.add('slide-up'); 
             } else {
-                slider.classList.add('slide-down'); // Desce a atual
+                slider.classList.add('slide-down'); 
             }
 
+            // Aguarda o término da animação de saída da peça antiga
             setTimeout(() => {
-                // Atualiza o índice do array de peças
                 currentIndex += direcao;
                 if (currentIndex < 0) currentIndex = pecas.length - 1; 
                 if (currentIndex >= pecas.length) currentIndex = 0;
                 
                 currentPhotoIndex = 0; 
                 
-                // 2. Remove a animação de saída e posiciona a nova peça no lado oposto instantaneamente
+                // 2. Remove as classes de saída e reposiciona a nova peça no lado oposto instantaneamente
                 slider.classList.remove('slide-up', 'slide-down');
                 if (direcao === 1) {
-                    slider.classList.add('instant-bottom'); // Coloca a nova no fundo sem transição
+                    slider.classList.add('instant-bottom'); 
                 } else {
-                    slider.classList.add('instant-top'); // Coloca a nova no topo sem transição
+                    slider.classList.add('instant-top'); 
                 }
 
-                // Força o navegador a renderizar a nova posição antes de aplicar a animação de entrada
+                // Força o fluxo de renderização do navegador (Reflow)
                 slider.offsetHeight; 
 
-                // 3. Renderiza o conteúdo da nova peça
+                // 3. Atualiza os dados estruturais da tela com os dados da nova peça
                 exibirPecaAtual();
 
-                // 4. Faz a nova peça deslizar suavemente para a posição central original
+                // 4. Remove o posicionamento fixo e ativa a transição suave de entrada retornando ao centro
                 slider.classList.remove('instant-bottom', 'instant-top');
-                
-                // Libera o slider para novos gestos após o término da transição central
+                slider.classList.add('slide-in');
+
+                // Aguarda o encerramento completo da animação de entrada central
                 setTimeout(() => {
-                    estaAnimandoPeca = false;
+                    slider.classList.remove('slide-in');
+                    estaAnimandoPeca = false; // Desbloqueia o Slider para o próximo arrasto
                 }, 250);
 
             }, 250);
@@ -1371,7 +1381,7 @@
             let request = id ? storePeca.put({...dadosPeca, id: parseInt(id)}) : storePeca.add(dadosPeca);
 
             request.onsuccess = (evt) => {
-                alert(id ? "Peça atualizada!" : "Peça cadastrada!");
+                alert(id ? "Peça updated!" : "Peça cadastrada!");
                 closeModal('cadastroModal');
                 const idFoco = id ? parseInt(id) : evt.target.result;
                 carregarPecas(idFoco);
