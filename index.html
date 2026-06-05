@@ -950,7 +950,6 @@
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
 
-            // Atualizado rótulos para "Peça" e "Código"
             let msg = `*Peça:* ${peca.nome}\n`;
             msg += `*Código:* ${peca.codigo}\n\n`;
 
@@ -1005,7 +1004,6 @@
 
             const printWindow = window.open('', '_blank');
             
-            // Otimização das margens horizontais, internas e distância entre os containers
             let htmlContent = `
             <!DOCTYPE html>
             <html>
@@ -1089,7 +1087,6 @@
             `;
 
             pecas.forEach(peca => {
-                // Atualizado rótulos para "Peça" e "Código"
                 let txtPeca = `<strong>Peça:</strong> ${peca.nome}\n`;
                 txtPeca += `<strong>Código:</strong> ${peca.codigo}\n\n`;
 
@@ -1273,48 +1270,111 @@
             reader.onerror = error => reject(error);
         });
 
-        async function handleNovaMedidaInline(selectElement) {
-            if (selectElement.value !== "NOVA") return;
-
-            const todasAsLinhas = Array.from(document.querySelectorAll('.measurement-row-form'));
-            const linhaPai = selectElement.closest('.measurement-row-form');
-            const indiceAlvo = todasAsLinhas.indexOf(linhaPai);
-
-            const novoNome = prompt("Digite o nome da nova medida (Ex: Diâmetro Total, Espessura):");
+        function deletarNomeMedida(nomeParaDeletar) {
+            if (!nomeParaDeletar) return false;
             
-            if (!novoNome || novoNome.trim() === "") {
-                selectElement.value = "";
-                return;
-            }
-
-            const nomeFormatado = novoNome.trim();
-
-            if (!nomesMedidasExistentes.includes(nomeFormatado)) {
-                nomesMedidasExistentes.push(nomeFormatado);
-                nomesMedidasExistentes.sort();
-                
+            if (confirm(`Deseja mesmo excluir a medida "${nomeParaDeletar}" da lista de opções do sistema?`)) {
                 const tx = db.transaction("nomesMedidas", "readwrite");
-                tx.objectStore("nomesMedidas").put({ nome: nomeFormatado });
+                tx.objectStore("nomesMedidas").delete(nomeParaDeletar).onsuccess = () => {
+                    alert("Opção excluída com sucesso!");
+                    nomesMedidasExistentes = nomesMedidasExistentes.filter(n => n !== nomeParaDeletar);
+                    atualizarTodosSelectsMedidas(nomeParaDeletar);
+                };
+                return true;
             }
+            return false;
+        }
 
-            const valoresAtuais = todasAsLinhas.map(row => row.querySelector('.medida-nome-select').value);
-
-            const todosSelects = document.querySelectorAll('.medida-nome-select');
-            todosSelects.forEach((sel, idx) => {
+        function atualizarTodosSelectsMedidas(medidaDeletada = null) {
+            const todasAsLinhas = document.querySelectorAll('.measurement-row-form');
+            todasAsLinhas.forEach(row => {
+                const sel = row.querySelector('.medida-nome-select');
+                // IMPORTANTE: Pegamos o último valor real persistido no dataset em vez do value que está temporariamente em "DELETAR"
+                const valorAtualReal = sel.dataset.ultimoValor || "";
+                
                 let novasOpcoes = `<option value="">Medida</option>`;
                 nomesMedidasExistentes.forEach(n => {
                     novasOpcoes += `<option value="${n}">${n}</option>`;
                 });
                 novasOpcoes += `<option value="NOVA" style="color: blue; font-weight: bold;">[+ Nova Opção]</option>`;
+                novasOpcoes += `<option value="DELETAR" style="color: red; font-weight: bold;">[✕ Apagar Opção]</option>`;
                 
                 sel.innerHTML = novasOpcoes;
-                
-                if (idx === indiceAlvo) {
-                    sel.value = nomeFormatado;
+
+                // AJUSTE SEGURO: Só limpa para "" se a medida deletada confirmada bater 100% com o que estava salvo na linha antes do clique
+                if (medidaDeletada && valorAtualReal === medidaDeletada) {
+                    sel.value = "";
+                    sel.dataset.ultimoValor = "";
                 } else {
-                    sel.value = valoresAtuais[idx] === "NOVA" ? "" : valoresAtuais[idx];
+                    const aindaExiste = nomesMedidasExistentes.includes(valorAtualReal);
+                    sel.value = aindaExiste ? valorAtualReal : "";
+                    sel.dataset.ultimoValor = aindaExiste ? valorAtualReal : "";
                 }
             });
+        }
+
+        async function handleNovaMedidaInline(selectElement) {
+            const todasAsLinhas = Array.from(document.querySelectorAll('.measurement-row-form'));
+            const linhaPai = selectElement.closest('.measurement-row-form');
+            const indiceAlvo = todasAsLinhas.indexOf(linhaPai);
+
+            // Resgatamos o valor que estava selecionado REALMENTE antes do clique no menu
+            const valorAnteriorReal = selectElement.dataset.ultimoValor || "";
+
+            if (selectElement.value === "NOVA") {
+                const novoNome = prompt("Digite o nome da nova medida (Ex: Diâmetro Total, Espessura):");
+                
+                if (!novoNome || novoNome.trim() === "") {
+                    selectElement.value = valorAnteriorReal;
+                    return;
+                }
+
+                const nomeFormatado = novoNome.trim();
+
+                if (!nomesMedidasExistentes.includes(nomeFormatado)) {
+                    nomesMedidasExistentes.push(nomeFormatado);
+                    nomesMedidasExistentes.sort();
+                    
+                    const tx = db.transaction("nomesMedidas", "readwrite");
+                    tx.objectStore("nomesMedidas").put({ nome: nomeFormatado });
+                }
+
+                atualizarTodosSelectsMedidas();
+                
+                const selectAlvo = document.querySelectorAll('.medida-nome-select')[indiceAlvo];
+                selectAlvo.value = nomeFormatado;
+                selectAlvo.dataset.ultimoValor = nomeFormatado;
+            } 
+            else if (selectElement.value === "DELETAR") {
+                if (nomesMedidasExistentes.length === 0) {
+                    alert("Não existem medidas personalizadas criadas para excluir.");
+                    selectElement.value = valorAnteriorReal;
+                    return;
+                }
+                
+                let listaTexto = "Digite exatamente o nome da medida personalizada que deseja excluir da lista:\n\n";
+                nomesMedidasExistentes.forEach(n => listaTexto += `- ${n}\n`);
+                
+                const nomeParaExcluir = prompt(listaTexto);
+                
+                if (nomeParaExcluir && nomesMedidasExistentes.includes(nomeParaExcluir.trim())) {
+                    const foiDeletado = deletarNomeMedida(nomeParaExcluir.trim());
+                    // Se a medida digitada foi excluída com sucesso, o fluxo de atualizarTodosSelectsMedidas() já cuida do reset.
+                    // Caso o usuário tente excluir uma medida que NÃO é a que estava selecionada na linha atual, restauramos o valor original dela aqui:
+                    if (foiDeletado && valorAnteriorReal !== nomeParaExcluir.trim()) {
+                        selectElement.value = valorAnteriorReal;
+                    }
+                } else {
+                    if (nomeParaExcluir) {
+                        alert("Nome não encontrado na lista. Escreva exatamente igual ao cadastrado.");
+                    }
+                    // Cancela e volta com o valor que estava de forma segura
+                    selectElement.value = valorAnteriorReal;
+                }
+            } else {
+                // Seleção de medida comum normal: guardamos o valor atualizado
+                selectElement.dataset.ultimoValor = selectElement.value;
+            }
         }
 
         async function salvarPeca(e) {
@@ -1348,7 +1408,7 @@
                 const valor = row.querySelector('.medida-valor').value;
                 const unidad = row.querySelector('.medida-unidade').value;
 
-                if (selectNome === "" || selectNome === "NOVA") {
+                if (selectNome === "NOVA" || selectNome === "DELETAR") {
                     erroMedidaVazia = true;
                     return;
                 }
@@ -1457,6 +1517,7 @@
                 opcoes += `<option value="${n}" ${selecionado}>${n}</option>`;
             });
             opcoes += `<option value="NOVA" style="color: blue; font-weight: bold;">[+ Nova Opção]</option>`;
+            opcoes += `<option value="DELETAR" style="color: red; font-weight: bold;">[✕ Apagar Opção]</option>`;
 
             row.innerHTML = `
                 <select class="medida-nome-select" onchange="handleNovaMedidaInline(this)">${opcoes}</select>
@@ -1474,6 +1535,10 @@
                 </select>
                 <button type="button" class="btn-secondary" onclick="this.parentElement.remove()" style="padding: 0.4rem 0.6rem; background:#fee2e2; color:#ef4444; border:none; border-radius:6px; cursor:pointer;">✕</button>
             `;
+            
+            const selectMontado = row.querySelector('.medida-nome-select');
+            selectMontado.dataset.ultimoValor = nome;
+
             container.appendChild(row);
         }
 
