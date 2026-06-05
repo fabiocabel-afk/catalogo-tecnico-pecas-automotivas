@@ -824,6 +824,7 @@
             tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
         }
 
+        // GESTOS TOUCH
         let touchStartX = 0;
         let touchStartY = 0;
         let estaAnimandoPeca = false; 
@@ -903,7 +904,7 @@
             if (peca.medidas && peca.medidas.length > 0) {
                 msg += `*MEDIDAS:*\n`;
                 peca.medidas.forEach(m => {
-                    msg += ` ♦ *${m.nome}:* ${m.valor} ${m.unidade}\n`;
+                    msg += ` ◆ *${m.nome}:* ${m.valor} ${m.unidade}\n`;
                 });
                 msg += `\n`;
             }
@@ -1151,7 +1152,7 @@
             let request = id ? storePeca.put({...dadosPeca, id: parseInt(id)}) : storePeca.add(dadosPeca);
 
             request.onsuccess = (evt) => {
-                alert(id ? "Peça atualizada!" : "Peça cadastrada!");
+                alert(id ? "Peça updated!" : "Peça cadastrada!");
                 closeModal('cadastroModal');
                 const idFoco = id ? parseInt(id) : evt.target.result;
                 carregarPecas(idFoco);
@@ -1275,7 +1276,6 @@
             setTimeout(() => document.getElementById('searchInput').focus(), 150);
         }
 
-        // FUNÇÃO DE RENDERIZAR E EXIBIR A NOVA MODAL DE LISTA
         function openListModal() {
             const resultsContainer = document.getElementById('listModalResults');
             resultsContainer.innerHTML = '';
