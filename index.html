@@ -122,6 +122,11 @@
             flex-shrink: 0;
         }
 
+        /* Classe específica para mudar o fundo do círculo do botão excluir */
+        .menu-icon-circle.danger-circle {
+            background-color: #B70006;
+        }
+
         .menu-icon-circle img {
             width: 16px;
             height: 16px;
@@ -556,6 +561,7 @@
             padding: 1rem;
             border-radius: 8px;
             border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
 
         .fotos-atuais-grid {
@@ -642,7 +648,7 @@
                 <div class="menu-icon-circle"><img src="img/opcao_lista.png" alt="Lista"></div> Lista
             </button>
             <button class="menu-item" onclick="execMenu('exportar_pdf')">
-                <div class="menu-icon-circle"><img src="img/opcao_lista.png" alt="Exportar PDF"></div> Exportar Catálogo (PDF)
+                <div class="menu-icon-circle"><img src="img/opcao_catalogo.png" alt="Gerar Catálogo"></div> Gerar Catálogo
             </button>
             <button class="menu-item" onclick="execMenu('novo')">
                 <div class="menu-icon-circle"><img src="img/opcao_novo.png" alt="Novo Registro"></div> Novo Registro
@@ -655,7 +661,7 @@
                     <div class="menu-icon-circle"><img src="img/opcao_editar.png" alt="Editar Peça"></div> Editar Peça
                 </button>
                 <button class="menu-item danger" onclick="execMenu('excluir')">
-                    <div class="menu-icon-circle"><img src="img/opcao_excluir.png" alt="Excluir Peça"></div> Excluir Peça
+                    <div class="menu-icon-circle danger-circle"><img src="img/opcao_excluir.png" alt="Excluir Peça"></div> Excluir Peça
                 </button>
             </div>
         </div>
@@ -977,14 +983,12 @@
             }
         }
 
-        // NOVA FUNÇÃO: GERAÇÃO E EXPORTAÇÃO COMPLETA DO CATALOGO EM PDF
         function exportarCatalogoPDF() {
             if (pecas.length === 0) {
                 alert("Nenhuma peça cadastrada para exportar.");
                 return;
             }
 
-            // Cria uma nova janela limpa para renderização do relatório/print
             const printWindow = window.open('', '_blank');
             
             let htmlContent = `
@@ -1023,7 +1027,7 @@
                         border-radius: 8px;
                         padding: 20px;
                         margin-bottom: 25px;
-                        page-break-inside: avoid; /* Impede que uma peça quebre no meio da página */
+                        page-break-inside: avoid;
                     }
                     .peca-img-box {
                         width: 160px;
@@ -1069,7 +1073,6 @@
                 </div>
             `;
 
-            // Varre o array de peças montando o texto igual à opção compartilhar
             pecas.forEach(peca => {
                 let txtPeca = `<strong>Nome da Peça:</strong> ${peca.nome}\n`;
                 txtPeca += `<strong>Código da Peça:</strong> ${peca.codigo}\n\n`;
@@ -1086,7 +1089,6 @@
                     txtPeca += `<strong>Observações:</strong> ${peca.observacao}\n\n`;
                 }
 
-                // Verifica se há imagens cadastradas para capturar a primeira
                 let imgTag = `<div class="no-img-text">Sem Imagem</div>`;
                 if (peca.fotos && peca.fotos.length > 0) {
                     imgTag = `<img src="${peca.fotos[0]}" alt="Foto ${peca.nome}">`;
@@ -1112,11 +1114,9 @@
             printWindow.document.write(htmlContent);
             printWindow.document.close();
 
-            // Aguarda o carregamento completo das imagens Base64 e aciona a impressão do sistema (PDF)
             printWindow.onload = function() {
                 printWindow.focus();
                 printWindow.print();
-                // Opcional: printWindow.close(); // Fecha a janela após mandar imprimir
             };
         }
 
