@@ -87,7 +87,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             display: none;
             flex-direction: column;
-            min-width: 160px;
+            min-width: 180px;
             z-index: 99;
             overflow: hidden;
         }
@@ -99,7 +99,7 @@
         .menu-item {
             background: none;
             border: none;
-            padding: 0.7rem 1rem;
+            padding: 0.6rem 1rem;
             text-align: left;
             font-size: 0.9rem;
             font-weight: 500;
@@ -108,7 +108,25 @@
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
+        }
+
+        /* Estilização do círculo ao redor das imagens do menu */
+        .menu-icon-circle {
+            width: 26px;
+            height: 26px;
+            background-color: #64a0bc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .menu-icon-circle img {
+            width: 16px;
+            height: 16px;
+            object-fit: contain;
         }
 
         .menu-item:last-child {
@@ -618,13 +636,25 @@
         <button class="menu-btn" onclick="toggleMenu(event)">☰</button>
         
         <div class="menu-dropdown" id="menuDropdown">
-            <button class="menu-item" onclick="execMenu('buscar')">🔍 Buscar</button>
-            <button class="menu-item" onclick="execMenu('lista')">📋 Lista</button>
-            <button class="menu-item" onclick="execMenu('novo')">＋ Novo Registro</button>
+            <button class="menu-item" onclick="execMenu('buscar')">
+                <div class="menu-icon-circle"><img src="img/opcao_buscar.png" alt="Buscar"></div> Buscar
+            </button>
+            <button class="menu-item" onclick="execMenu('lista')">
+                <div class="menu-icon-circle"><img src="img/opcao_lista.png" alt="Lista"></div> Lista
+            </button>
+            <button class="menu-item" onclick="execMenu('novo')">
+                <div class="menu-icon-circle"><img src="img/opcao_novo.png" alt="Novo Registro"></div> Novo Registro
+            </button>
             <div id="menuPecaActions" style="display: none; flex-direction: column;">
-                <button class="menu-item" onclick="execMenu('compartilhar')">📤 Compartilhar</button>
-                <button class="menu-item" onclick="execMenu('editar')">✏️ Editar Peça</button>
-                <button class="menu-item danger" onclick="execMenu('excluir')">🗑️ Excluir Peça</button>
+                <button class="menu-item" onclick="execMenu('compartilhar')">
+                    <div class="menu-icon-circle"><img src="img/opcao_compartilhar.png" alt="Compartilhar"></div> Compartilhar
+                </button>
+                <button class="menu-item" onclick="execMenu('editar')">
+                    <div class="menu-icon-circle"><img src="img/opcao_editar.png" alt="Editar Peça"></div> Editar Peça
+                </button>
+                <button class="menu-item danger" onclick="execMenu('excluir')">
+                    <div class="menu-icon-circle"><img src="img/opcao_excluir.png" alt="Excluir Peça"></div> Excluir Peça
+                </button>
             </div>
         </div>
     </header>
@@ -894,7 +924,7 @@
             });
         }
 
-        function compartilharPecaAtual() {
+        async function compartilharPecaAtual() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
 
@@ -915,11 +945,27 @@
 
             msg += `_Enviado via Catálogo Técnico_`;
 
+            // Preparação dos arquivos (primeira imagem) para compartilhamento se suportado
+            let shareData = {
+                title: `Dados da Peça - ${peca.codigo}`,
+                text: msg
+            };
+
+            if (navigator.canShare && peca.fotos && peca.fotos.length > 0) {
+                try {
+                    const blob = await fetch(peca.fotos[0]).then(r => r.blob());
+                    const file = new File([blob], `peca_${peca.codigo}.png`, { type: blob.type });
+                    
+                    if (navigator.canShare({ files: [file] })) {
+                        shareData.files = [file];
+                    }
+                } catch (e) {
+                    console.log("Erro ao processar imagem para compartilhamento:", e);
+                }
+            }
+
             if (navigator.share) {
-                navigator.share({
-                    title: `Dados da Peça - ${peca.codigo}`,
-                    text: msg
-                }).catch(err => console.log("Compartilhamento cancelado ou erro: ", err));
+                navigator.share(shareData).catch(err => console.log("Compartilhamento cancelado ou erro: ", err));
             } else {
                 navigator.clipboard.writeText(msg).then(() => {
                     alert("Dados copiados para a área de transferência! Prontos para colar (Ctrl+V) em qualquer mensagem.");
