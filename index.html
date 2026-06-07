@@ -941,42 +941,22 @@
         const dbName = "CatalogoTecnicoDB";
 
         function initDB() {
-            return new Promise((resolve, reject) => {
-                if (db) {
-                    resolve(db);
-                    return;
-                }
-                const request = indexedDB.open(dbName, 1);
-                
-                request.onerror = (e) => {
-                    console.error("Erro IndexedDB:", e);
-                    reject(e);
-                };
-                
-                request.onsuccess = (e) => {
-                    db = e.target.result;
-                    carregarPecas();
-                    atualizarMetadadosBackupLabels();
-                    resolve(db);
-                };
+            const request = indexedDB.open(dbName, 1);
+            
+            request.onerror = (e) => console.error("Erro IndexedDB:", e);
+            
+            request.onsuccess = (e) => {
+                db = e.target.result;
+                carregarPecas();
+                atualizarMetadadosBackupLabels();
+            };
 
-                request.onupgradeneeded = (e) => {
-                    db = e.target.result;
-                    const store = db.createObjectStore("pecas", { keyPath: "id", autoIncrement: true });
-                    store.createIndex("codigo", "codigo", { unique: true });
-                    db.createObjectStore("nomesMedidas", { keyPath: "nome" });
-                };
-            });
-        }
-
-        async function obterDB() {
-            if (!db) {
-                await initDB();
-            }
-            if (!db) {
-                throw new Error("Não foi possível conectar ao Banco de Dados local do dispositivo.");
-            }
-            return db;
+            request.onupgradeneeded = (e) => {
+                db = e.target.result;
+                const store = db.createObjectStore("pecas", { keyPath: "id", autoIncrement: true });
+                store.createIndex("codigo", "codigo", { unique: true });
+                db.createObjectStore("nomesMedidas", { keyPath: "nome" });
+            };
         }
 
         let pecas = [];
@@ -1010,6 +990,7 @@
         function switchTab(tabId) {
             const tabButtons = document.querySelectorAll('.form-tab-btn');
             const tabContents = document.querySelectorAll('.form-tab-content');
+            
             tabButtons.forEach(btn => {
                 const target = btn.getAttribute('onclick');
                 if (target && target.includes(tabId)) {
@@ -1018,6 +999,7 @@
                     btn.classList.remove('active');
                 }
             });
+
             tabContents.forEach(content => {
                 if (content.id === tabId) {
                     content.classList.add('active');
@@ -1031,6 +1013,7 @@
         let touchStartY = 0;
         let estaAnimandoPeca = false;
         const viewerElement = document.getElementById('imageViewer');
+
         viewerElement.addEventListener('touchstart', e => {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
@@ -1040,6 +1023,7 @@
             if (estaAnimandoPeca) return;
             const diffX = e.changedTouches[0].screenX - touchStartX;
             const diffY = e.changedTouches[0].screenY - touchStartY;
+
             if (Math.abs(diffX) > Math.abs(diffY)) {
                 if (Math.abs(diffX) > 40) {
                     if (diffX > 0) mudarFoto(-1);
@@ -1059,11 +1043,12 @@
         function resetarVisualizacaoVazia() {
             document.getElementById('viewNome').innerText = "Nenhuma peça cadastrada";
             document.getElementById('viewCodigo').innerText = "Código: --";
-            document.getElementById('menuPecaActions').style.display = 'none';
-            document.getElementById('navPieceCounter').innerText = "0 / 0";
-            document.getElementById('infoIconBtn').style.display = 'none';
-            atualizarSliderFotos([]);
+            document.getElementById('menuPecaActions').style.display = "none";
+            document.getElementById('infoIconBtn').style.display = "none";
+            document.getElementById('imageSlider').innerHTML = '';
+            document.getElementById('dotsContainer').innerHTML = '';
             document.getElementById('measurementsTableBody').innerHTML = '';
+            document.getElementById('navPieceCounter').innerText = "0 / 0";
         }
 
         function exibirPecaAtual() {
@@ -1071,33 +1056,274 @@
                 resetarVisualizacaoVazia();
                 return;
             }
-            document.getElementById('menuPecaActions').style.display = 'flex';
-            document.getElementById('infoIconBtn').style.display = 'flex';
+
             const peca = pecas[currentIndex];
             document.getElementById('viewNome').innerText = peca.nome;
             document.getElementById('viewCodigo').innerText = `Código: ${peca.codigo}`;
+            document.getElementById('menuPecaActions').style.display = "flex";
+            document.getElementById('infoIconBtn').style.display = "flex";
             document.getElementById('navPieceCounter').innerText = `${currentIndex + 1} / ${pecas.length}`;
+            
             atualizarSliderFotos(peca.fotos);
-            const tableBody = document.getElementById('measurementsTableBody');
-            tableBody.innerHTML = '';
+
+            const tbody = document.getElementById('measurementsTableBody');
+            tbody.innerHTML = '';
+            
+            peca.medidas.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${m.nome}</td><td>${m.valor}</td><td>${m.unidade}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function compartilharPecaAtual() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+
+            let msg = `*Peça:* ${peca.nome}\n`;
+            msg += `*Código:* ${peca.codigo}\n\n`;
+
             if (peca.medidas && peca.medidas.length > 0) {
+                msg += `*MEDIDAS:*\n`;
                 peca.medidas.forEach(m => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `<td><strong>${m.nome}</strong></td><td>${m.valor}</td><td><span style="color:var(--text-secondary); font-size:0.8rem;">${m.unidade}</span></td>`;
-                    tableBody.appendChild(row);
+                    msg += ` ◆ *${m.nome}:* ${m.valor} ${m.unidade}\n`;
                 });
-            } else {
-                tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-secondary); font-style:italic; padding:2rem;">Nenhuma medida vinculada a esta peça.</td></tr>`;
+                msg += `\n`;
             }
+
+            if (peca.observacao && peca.observacao.trim() !== "") {
+                msg += `*Observações:* ${peca.observacao}\n\n`;
+            }
+            msg += `_Enviado via Catálogo Técnico_`;
+
+            let shareData = {
+                title: `Dados da Peça - ${peca.codigo}`,
+                text: msg
+            };
+
+            if (navigator.canShare && peca.fotos && peca.fotos.length > 0) {
+                try {
+                    const blob = await fetch(peca.fotos[0]).then(r => r.blob());
+                    const file = new File([blob], `peca_${peca.codigo}.png`, { type: blob.type });
+                    if (navigator.canShare({ files: [file] })) {
+                        shareData.files = [file];
+                    }
+                } catch (e) {
+                    console.log("Erro ao processar imagem para compartilhamento:", e);
+                }
+            }
+
+            if (navigator.share) {
+                navigator.share(shareData).catch(err => console.log("Compartilhamento cancelado ou erro: ", err));
+            } else {
+                navigator.clipboard.writeText(msg).then(() => {
+                    alert("Dados copiados para a área de transferência! Prontos para colar (Ctrl+V) em qualquer mensagem.");
+                }).catch(err => {
+                    alert("Não foi possível compartilhar ou copiar os dados automaticamente.");
+                });
+            }
+        }
+
+        function exportarCatalogoPDF() {
+            if (pecas.length === 0) {
+                alert("Nenhuma peça cadastrada para exportar.");
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            let htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Catálogo Técnico de Peças</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            color: #0f172a;
+            padding: 12px;
+            margin: 0;
+            background: #fff;
+        }
+        .header-print {
+            text-align: center;
+            border-bottom: 2px solid #64a0bc;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+        .header-print h1 { margin: 0; font-size: 20px; color: #1e3a8a; }
+        .header-print p { margin: 4px 0 0 0; font-size: 11px; color: #64748b; }
+        .peca-block {
+            display: flex;
+            gap: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            page-break-inside: avoid;
+        }
+        .peca-img-box {
+            width: 110px;
+            height: 110px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            flex-shrink: 0;
+        }
+        .peca-img-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .peca-details {
+            flex: 1;
+        }
+        .peca-text-format {
+            white-space: pre-wrap;
+            font-family: inherit;
+            font-size: 13px;
+            line-height: 1.4;
+            margin: 0;
+        }
+        .no-img-text {
+            color: #94a3b8;
+            font-size: 11px;
+            text-align: center;
+        }
+        @media print {
+            body { padding: 0; }
+            @page { margin: 1cm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-print">
+        <h1>Catálogo Técnico Completo</h1>
+        <p>Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+    </div>
+`;
+
+            pecas.forEach(peca => {
+                htmlContent += `
+    <div class="peca-block">
+        <div class="peca-img-box">
+            ${peca.fotos && peca.fotos.length > 0 ? `<img src="${peca.fotos[0]}">` : `<span class="no-img-text">Sem foto</span>`}
+        </div>
+        <div class="peca-details">
+            <pre class="peca-text-format"><strong>Código:</strong> ${peca.codigo}    |    <strong>Peça:</strong> ${peca.nome}`;
+
+                if (peca.medidas && peca.medidas.length > 0) {
+                    htmlContent += `\n\n<strong>Medidas:</strong>`;
+                    peca.medidas.forEach(m => {
+                        htmlContent += `\n • ${m.nome}: ${m.valor} ${m.unidade}`;
+                    });
+                }
+
+                if (peca.observacao && peca.observacao.trim() !== "") {
+                    htmlContent += `\n\n<strong>Observações:</strong> ${peca.observacao}`;
+                }
+
+
+                htmlContent += `</pre>
+        </div>
+    </div>`;
+            });
+
+            htmlContent += `
+    <script>
+        window.onload = function() {
+            setTimeout(() => { window.print(); }, 500);
+        };
+    <\/script>
+</body>
+</html>`;
+
+            printWindow.document.open();
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+        }
+
+        function atualizarSliderFotos(listaFotos) {
+            const slider = document.getElementById('imageSlider');
+            const dotsContainer = document.getElementById('dotsContainer');
+            
+            slider.innerHTML = '';
+            dotsContainer.innerHTML = '';
+            
+            if (!listaFotos || listaFotos.length === 0) {
+                slider.innerHTML = `<div class="slide"><div class="no-image">Nenhuma imagem anexada</div></div>`;
+                currentPhotoIndex = 0;
+                return;
+            }
+
+            if (currentPhotoIndex >= listaFotos.length) {
+                currentPhotoIndex = 0;
+            }
+
+            listaFotos.forEach((f, idx) => {
+                const slide = document.createElement('div');
+                slide.className = 'slide';
+                
+                const img = document.createElement('img');
+                img.src = f;
+                img.alt = `Foto ${idx + 1}`;
+                img.loading = "lazy";
+                
+                slide.appendChild(img);
+                slider.appendChild(slide);
+
+                const dot = document.createElement('div');
+                dot.className = `dot ${idx === currentPhotoIndex ? 'active' : ''}`;
+                dotsContainer.appendChild(dot);
+            });
+
+            slider.style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
+        }
+
+        function mudarFoto(direcao) {
+            const peca = pecas[currentIndex];
+            if (!peca || !peca.fotos || peca.fotos.length <= 1) return;
+
+            currentPhotoIndex += direcao;
+            if (currentPhotoIndex < 0) {
+                currentPhotoIndex = peca.fotos.length - 1;
+            } else if (currentPhotoIndex >= peca.fotos.length) {
+                currentPhotoIndex = 0;
+            }
+
+            const slider = document.getElementById('imageSlider');
+            slider.style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
+
+            const dots = document.querySelectorAll('.dots-container .dot');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === currentPhotoIndex);
+            });
+        }
+
+        function mudarPeca(direcao) {
+            if (pecas.length <= 1 || estaAnimandoPeca) return;
+            
+            let novoIndex = currentIndex + direcao;
+            if (novoIndex < 0) novoIndex = pecas.length - 1;
+            if (novoIndex >= pecas.length) novoIndex = 0;
+
+            currentIndex = novoIndex;
+            currentPhotoIndex = 0;
+            exibirPecaAtual();
         }
 
         function animarEMudarPeca(direcao) {
             if (pecas.length <= 1 || estaAnimandoPeca) return;
+            
             estaAnimandoPeca = true;
+            const slider = document.getElementById('imageSlider');
+            
             let novoIndex = currentIndex + direcao;
             if (novoIndex < 0) novoIndex = pecas.length - 1;
             if (novoIndex >= pecas.length) novoIndex = 0;
-            const slider = document.getElementById('imageSlider');
+
             if (direcao > 0) {
                 slider.classList.add('slide-up');
                 setTimeout(() => {
@@ -1105,6 +1331,7 @@
                     currentPhotoIndex = 0;
                     exibirPecaAtual();
                     slider.className = 'image-slider instant-bottom';
+                    
                     requestAnimationFrame(() => {
                         setTimeout(() => {
                             slider.className = 'image-slider slide-in';
@@ -1122,6 +1349,7 @@
                     currentPhotoIndex = 0;
                     exibirPecaAtual();
                     slider.className = 'image-slider instant-top';
+                    
                     requestAnimationFrame(() => {
                         setTimeout(() => {
                             slider.className = 'image-slider slide-in';
@@ -1150,39 +1378,19 @@
             }
         }
 
-        function openCadastroModal() {
-            document.getElementById('modalTitle').innerText = "Cadastrar Nova Peça";
-            document.getElementById('btnSalvar').innerText = "Salvar";
-            document.getElementById('formId').value = '';
-            document.getElementById('cadastroForm').reset();
-            
-            document.getElementById('formFotos').required = true;
-            document.getElementById('labelFotos').innerText = "Adicionar Fotos (1 a 6) *";
-            document.getElementById('formFotosAtuaisContainer').style.display = 'none';
-            document.getElementById('formMedidasLista').innerHTML = '';
-            
-            switchTab('tab-peca');
-
-            carregarMedidasGlobaisDoBanco().then(() => {
-                adicionarLinhaMedida();
-                openModal('cadastroModal');
-            }).catch(err => {
-                console.error("Erro ao pré-carregar as medidas:", err);
-                adicionarLinhaMedida();
-                openModal('cadastroModal');
-            });
-        }
-
         function openInfoModal() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
+            
             document.getElementById('infoModalTitle').innerText = peca.nome;
+            
             if (peca.observacao && peca.observacao.trim() !== "") {
                 document.getElementById('infoObsContainer').style.display = "block";
                 document.getElementById('infoObservacaoText').innerText = peca.observacao;
             } else {
                 document.getElementById('infoObsContainer').style.display = "none";
             }
+
             document.getElementById('infoMetaText').innerText = peca.responsavel || "Não informado";
             openModal('infoModal');
         }
@@ -1199,11 +1407,17 @@
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const resultsContainer = document.getElementById('searchResults');
             resultsContainer.innerHTML = '';
+
             if (!query) {
                 resultsContainer.style.display = 'none';
                 return;
             }
-            const filtrados = pecas.filter(p => p.nome.toLowerCase().includes(query) || p.codigo.toLowerCase().includes(query) );
+
+            const filtrados = pecas.filter(p => 
+                p.nome.toLowerCase().includes(query) || 
+                p.codigo.toLowerCase().includes(query)
+            );
+
             if (filtrados.length === 0) {
                 resultsContainer.innerHTML = `<div class="search-item" style="color: var(--text-secondary); text-align: center;">Nenhuma peça encontrada</div>`;
             } else {
@@ -1226,6 +1440,7 @@
         function openListModal() {
             const container = document.getElementById('listModalResults');
             container.innerHTML = '';
+
             if (pecas.length === 0) {
                 container.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 2rem;">Nenhuma peça cadastrada no dispositivo.</div>`;
             } else {
@@ -1251,19 +1466,31 @@
             openModal('backupModal');
         }
 
-        function atualizarMetadadosBackupLabels() {
-            const lbBkp = localStorage.getItem("ct_ultimo_backup");
-            const lbRes = localStorage.getItem("ct_ultimo_restauro");
-            document.getElementById('lblUltimoBackup').innerText = lbBkp ? lbBkp : "--";
-            document.getElementById('lblUltimoRestauro').innerText = lbRes ? lbRes : "--";
+        function openCadastroModal() {
+            document.getElementById('modalTitle').innerText = "Cadastrar Nova Peça";
+            document.getElementById('btnSalvar').innerText = "Salvar";
+            document.getElementById('formId').value = '';
+            document.getElementById('formFotosAtuaisContainer').style.display = 'none';
+            document.getElementById('fotosAtuaisGrid').innerHTML = '';
+            document.getElementById('formMedidasLista').innerHTML = '';
+            document.getElementById('labelFotos').innerText = "Adicionar Fotos (1 a 6) *";
+            document.getElementById('formFotos').required = true;
+            
+            switchTab('tab-peca');
+            carregarMedidasGlobaisDoBanco().then(() => {
+                adicionarLinhaMedida();
+                openModal('cadastroModal');
+            });
         }
 
         function validarFotos(input) {
             const limiteMax = 6;
             let totalAtual = input.files.length;
+            
             if (document.getElementById('formId').value !== "") {
                 totalAtual += fotosTemporariasEdicao.length;
             }
+
             if (totalAtual > limiteMax) {
                 alert(`⚠️ Limite Excedido!\nO sistema permite no máximo ${limiteMax} fotos por registro.`);
                 input.value = '';
@@ -1274,39 +1501,48 @@
             const container = document.getElementById('formMedidasLista');
             const row = document.createElement('div');
             row.className = 'measurement-row-form';
+
             const selectNome = document.createElement('select');
             selectNome.required = true;
+
             const inputValor = document.createElement('input');
             inputValor.type = 'text';
             inputValor.inputMode = 'decimal';
             inputValor.placeholder = 'Valor';
             inputValor.required = true;
             inputValor.value = valorPreSelecionado;
+
             const selectUnidade = document.createElement('select');
             selectUnidade.innerHTML = `<option value="mm">mm</option><option value="pol">pol</option><option value="Graus">°</option><option value="Unid">un</option>`;
             selectUnidade.value = unidadePreSelecionada;
+
             const btnDelete = document.createElement('button');
             btnDelete.type = 'button';
             btnDelete.style.cssText = "background:none; border:none; color:var(--danger); font-size:1.2rem; cursor:pointer; padding: 0 0.4rem;";
             btnDelete.innerText = '✕';
             btnDelete.onclick = () => row.remove();
+
             atualizarSelectDeOpcoesDeMedidas(selectNome, nomePreSelecionado);
+
             row.appendChild(selectNome);
             row.appendChild(inputValor);
             row.appendChild(selectUnidade);
             row.appendChild(btnDelete);
             container.appendChild(row);
+            
             configurarMascaraDecimalEFlutuanteParaCamposDoFormulario(inputValor);
         }
 
         function atualizarSelectDeOpcoesDeMedidas(selectElement, valorSelecionado = "") {
             selectElement.innerHTML = '';
+            
             const optPlaceholder = document.createElement('option');
             optPlaceholder.value = "";
             optPlaceholder.text = "Selecione...";
             optPlaceholder.disabled = true;
             optPlaceholder.selected = !valorSelecionado;
             selectElement.appendChild(optPlaceholder);
+
             nomesMedidasExistentes.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m;
@@ -1314,21 +1550,24 @@
                 if (m === valorSelecionado) opt.selected = true;
                 selectElement.appendChild(opt);
             });
+
             const optCriarNovo = document.createElement('option');
             optCriarNovo.value = "__NOVO__";
             optCriarNovo.text = "＋ Criar Novo Nome...";
             optCriarNovo.style.color = "var(--primary)";
             optCriarNovo.style.fontWeight = "bold";
             selectElement.appendChild(optCriarNovo);
+
             const optDeletarOpcao = document.createElement('option');
             optDeletarOpcao.value = "__DELETAR__";
             optDeletarOpcao.text = "✕ Apagar Opção da Lista...";
             optDeletarOpcao.style.color = "var(--danger)";
             selectElement.appendChild(optDeletarOpcao);
+
             selectElement.onchange = () => {
                 if (selectElement.value === "__NOVO__") {
                     selectDisparadorOriginal = selectElement;
-                    const novoNome = prompt("Digite o nome da nova medida técnica:");
+                    const novoNome = prompt("Digite o nome da nova medida técnica (Ex: Altura Total, Diâmetro Interno):");
                     if (novoNome && novoNome.trim() !== "") {
                         salvarNovaMedidaGlobalNoBanco(novoNome.trim());
                     } else {
@@ -1336,97 +1575,84 @@
                     }
                 } else if (selectElement.value === "__DELETAR__") {
                     selectDisparadorOriginal = selectElement;
-                    abrirModalDeletarOpcao(valorSelecionado);
+                    abrirModalDeletarOpcaoMedidaGlobal(valorSelecionado);
                 }
             };
         }
 
-        async function abrirModalDeletarOpcao(valorOriginal) {
+        function abrirModalDeletarOpcaoMedidaGlobal(valorOriginalParaResetar) {
             const selectAlvo = document.getElementById('deletarSelectAlvo');
             selectAlvo.innerHTML = '';
+            
             nomesMedidasExistentes.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m;
                 opt.text = m;
                 selectAlvo.appendChild(opt);
             });
+
             openModal('deletarOpcaoModal');
-            document.getElementById('deletarOpcaoModal').dataset.valorOriginal = valorOriginal;
+            
+            window.fecharModalDeletarOpcao = () => {
+                closeModal('deletarOpcaoModal');
+                if (selectDisparadorOriginal) {
+                    selectDisparadorOriginal.value = valorOriginalParaResetar;
+                }
+            };
         }
 
-        function fecharModalDeletarOpcao() {
-            closeModal('deletarOpcaoModal');
-            if (selectDisparadorOriginal) {
-                selectDisparadorOriginal.value = document.getElementById('deletarOpcaoModal').dataset.valorOriginal || "";
-            }
-        }
-
-        async function confirmarDeletarMedidaGlobal() {
+        function confirmarDeletarMedidaGlobal() {
             const alvo = document.getElementById('deletarSelectAlvo').value;
             if (!alvo) return;
-            try {
-                const database = await obterDB();
-                const tx = database.transaction("nomesMedidas", "readwrite");
-                tx.objectStore("nomesMedidas").delete(alvo);
-                tx.oncomplete = () => {
-                    closeModal('deletarOpcaoModal');
-                    carregarMedidasGlobaisDoBanco().then(() => {
-                        const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
-                        todosSelects.forEach(sel => {
-                            const valAtual = sel.value;
-                            atualizarSelectDeOpcoesDeMedidas(sel, valAtual === alvo ? "" : valAtual);
-                        });
-                        alert("A opção foi removida com sucesso da lista de sugestões.");
+
+            const tx = db.transaction("nomesMedidas", "readwrite");
+            tx.objectStore("nomesMedidas").delete(alvo);
+
+            tx.oncomplete = () => {
+                closeModal('deletarOpcaoModal');
+                carregarMedidasGlobaisDoBanco().then(() => {
+                    const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
+                    todosSelects.forEach(sel => {
+                        const valAtual = sel.value;
+                        atualizarSelectDeOpcoesDeMedidas(sel, valAtual === alvo ? "" : valAtual);
                     });
-                };
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao remover a opção.");
-            }
+                    alert("A opção foi removida com sucesso da lista de sugestões.");
+                });
+            };
         }
 
-        async function salvarNovaMedidaGlobalNoBanco(nomeMedida) {
-            try {
-                const database = await obterDB();
-                const tx = database.transaction("nomesMedidas", "readwrite");
-                tx.objectStore("nomesMedidas").put({ nome: nomeMedida });
-                tx.oncomplete = () => {
-                    carregarMedidasGlobaisDoBanco().then(() => {
-                        const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
-                        todosSelects.forEach(sel => {
-                            const valorSalvoNoSelect = sel.value;
-                            if (sel === selectDisparadorOriginal) {
-                                atualizarSelectDeOpcoesDeMedidas(sel, nomeMedida);
-                            } else {
-                                atualizarSelectDeOpcoesDeMedidas(sel, valorSalvoNoSelect);
-                            }
-                        });
+        function salvarNovaMedidaGlobalNoBanco(nomeMedida) {
+            const tx = db.transaction("nomesMedidas", "readwrite");
+            tx.objectStore("nomesMedidas").put({ nome: nomeMedida });
+            
+            tx.oncomplete = () => {
+                carregarMedidasGlobaisDoBanco().then(() => {
+                    const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
+                    todosSelects.forEach(sel => {
+                        const valorSalvoNoSelect = sel.value;
+                        if (sel === selectDisparadorOriginal) {
+                            atualizarSelectDeOpcoesDeMedidas(sel, nomeMedida);
+                        } else {
+                            atualizarSelectDeOpcoesDeMedidas(sel, valorSalvoNoSelect);
+                        }
                     });
-                };
-            } catch (err) {
-                console.error(err);
-            }
+                });
+            };
         }
 
-        async function carregarMedidasGlobaisDoBanco() {
-            return new Promise(async (resolve) => {
-                try {
-                    const database = await obterDB();
-                    const tx = database.transaction("nomesMedidas", "readonly");
-                    const store = tx.objectStore("nomesMedidas");
-                    const req = store.getAll();
-                    req.onsuccess = () => {
-                        nomesMedidasExistentes = req.result.map(r => r.nome).sort((a,b) => a.localeCompare(b));
-                        resolve(true);
-                    };
-                } catch (err) {
-                    console.error(err);
-                    resolve(false);
-                }
+        function carregarMedidasGlobaisDoBanco() {
+            return new Promise((resolve) => {
+                const tx = db.transaction("nomesMedidas", "readonly");
+                const store = tx.objectStore("nomesMedidas");
+                const req = store.getAll();
+                req.onsuccess = () => {
+                    nomesMedidasExistentes = req.result.map(r => r.nome).sort((a,b) => a.localeCompare(b));
+                    resolve(true);
+                };
             });
         }
 
-        function configuringMascaraDecimalEFlutuanteParaCamposDoFormulario(inputField) {
+        function configurarMascaraDecimalEFlutuanteParaCamposDoFormulario(inputField) {
             inputField.addEventListener('input', (e) => {
                 let val = e.target.value;
                 val = val.replace(/,/g, '.');
@@ -1439,22 +1665,18 @@
             });
         }
 
-        async function carregarPecas() {
-            try {
-                const database = await obterDB();
-                const tx = database.transaction("pecas", "readonly");
-                const store = tx.objectStore("pecas");
-                const request = store.getAll();
-                request.onsuccess = () => {
-                    pecas = request.result;
-                    if (currentIndex >= pecas.length) {
-                        currentIndex = Math.max(0, pecas.length - 1);
-                    }
-                    exibirPecaAtual();
-                };
-            } catch (err) {
-                console.error(err);
-            }
+        function carregarPecas() {
+            const tx = db.transaction("pecas", "readonly");
+            const store = tx.objectStore("pecas");
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                pecas = request.result;
+                if (currentIndex >= pecas.length) {
+                    currentIndex = Math.max(0, pecas.length - 1);
+                }
+                exibirPecaAtual();
+            };
         }
 
         function otimizarEComprimirFotoCanvas(file) {
@@ -1467,6 +1689,7 @@
                         let width = img.width;
                         let height = img.height;
                         const max_size = 1024;
+
                         if (width > height) {
                             if (width > max_size) {
                                 height *= max_size / width;
@@ -1478,30 +1701,36 @@
                                 height = max_size;
                             }
                         }
+
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
+                        
                         const base64Str = canvas.toDataURL('image/jpeg', 0.75);
                         resolve(base64Str);
                     };
                     img.onerror = err => reject(err);
                     img.src = event.target.result;
                 };
+                reader.onerror = err => reject(err);
                 reader.readAsDataURL(file);
             });
         }
 
-        async function salvarPeca(event) {
-            event.preventDefault();
+        async function salvarPeca(e) {
+            e.preventDefault();
+            
             const idVal = document.getElementById('formId').value;
             const nome = document.getElementById('formNome').value.trim();
-            const codigo = document.getElementById('formCodigo').value.trim();
+            const codigo = document.getElementById('formCodigo').value.trim().toUpperCase();
             const observacao = document.getElementById('formObservacao').value.trim();
             const responsavel = document.getElementById('formResponsavel').value.trim();
-            const rowsMedidas = document.querySelectorAll('#formMedidasLista .measurement-row-form');
+
+            const rowsForm = document.querySelectorAll('.measurement-row-form');
             const medidas = [];
-            rowsMedidas.forEach(row => {
+            
+            rowsForm.forEach(row => {
                 const selNome = row.querySelector('select:nth-child(1)').value;
                 const valMedida = row.querySelector('input').value.trim();
                 const selUnid = row.querySelector('select:nth-child(3)').value;
@@ -1509,11 +1738,14 @@
                     medidas.push({ nome: selNome, valor: valMedida, unidade: selUnid });
                 }
             });
+
             const inputFotos = document.getElementById('formFotos');
             let fotosFinais = [];
+
             if (idVal !== "") {
                 fotosFinais = [...fotosTemporariasEdicao];
             }
+
             if (inputFotos.files.length > 0) {
                 for (let i = 0; i < inputFotos.files.length; i++) {
                     try {
@@ -1530,42 +1762,41 @@
                     }
                 }
             }
+
             const registroPeca = { nome, codigo, fotos: fotosFinais, medidas, observacao, responsavel };
             if (idVal !== "") registroPeca.id = Number(idVal);
+
+            const tx = db.transaction("pecas", "readwrite");
+            const store = tx.objectStore("pecas");
             
-            try {
-                const database = await obterDB();
-                const tx = database.transaction("pecas", "readwrite");
-                const store = tx.objectStore("pecas");
-                let requestAction;
-                if (idVal !== "") {
-                    requestAction = store.put(registroPeca);
-                } else {
-                    requestAction = store.add(registroPeca);
-                }
-                requestAction.onsuccess = () => {
-                    tx.oncomplete = () => {
-                        closeModal('cadastroModal');
-                        if (idVal === "") {
-                            currentIndex = pecas.length;
-                        }
-                        currentPhotoIndex = 0;
-                        carregarPecas();
-                    };
-                };
-                requestAction.onerror = (err) => {
-                    err.preventDefault();
-                    alert(`⚠️ Conflito de Código!\nO código "${codigo}" já pertence a outra peça cadastrada.`);
-                };
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao salvar o registro no banco de dados.");
+            let requestAction;
+            if (idVal !== "") {
+                requestAction = store.put(registroPeca);
+            } else {
+                requestAction = store.add(registroPeca);
             }
+
+            requestAction.onsuccess = () => {
+                tx.oncomplete = () => {
+                    closeModal('cadastroModal');
+                    if (idVal === "") {
+                        currentIndex = pecas.length; 
+                    }
+                    currentPhotoIndex = 0;
+                    carregarPecas();
+                };
+            };
+
+            requestAction.onerror = (err) => {
+                err.preventDefault();
+                alert(`⚠️ Conflito de Código!\nO código "${codigo}" já pertence a outra peça cadastrada.`);
+            };
         }
 
         function prepararEdicao() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
+
             document.getElementById('modalTitle').innerText = "Editar Peça Cadastrada";
             document.getElementById('btnSalvar').innerText = "Atualizar Registro";
             document.getElementById('formId').value = peca.id;
@@ -1575,10 +1806,13 @@
             document.getElementById('formResponsavel').value = peca.responsavel || '';
             document.getElementById('formFotos').required = false;
             document.getElementById('labelFotos').innerText = "Adicionar Mais Fotos (Opcional)";
+
             fotosTemporariasEdicao = peca.fotos ? [...peca.fotos] : [];
             renderizarPainelDeFotosExistentesParaEdicao();
+
             document.getElementById('formMedidasLista').innerHTML = '';
             switchTab('tab-peca');
+
             carregarMedidasGlobaisDoBanco().then(() => {
                 if (peca.medidas && peca.medidas.length > 0) {
                     peca.medidas.forEach(m => adicionarLinhaMedida(m.nome, m.valor, m.unidade));
@@ -1592,299 +1826,145 @@
         function renderizarPainelDeFotosExistentesParaEdicao() {
             const grid = document.getElementById('fotosAtuaisGrid');
             grid.innerHTML = '';
+            
             if (fotosTemporariasEdicao.length === 0) {
                 document.getElementById('formFotosAtuaisContainer').style.display = 'none';
                 return;
             }
+
             document.getElementById('formFotosAtuaisContainer').style.display = 'block';
-            fotosTemporariasEdicao.forEach((foto, index) => {
-                const item = document.createElement('div');
-                item.className = 'foto-atual-item';
-                const img = document.createElement('img');
-                img.src = foto;
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'btn-remover-foto';
-                btn.innerText = 'Excluir';
-                btn.onclick = () => {
-                    fotosTemporariasEdicao.splice(index, 1);
-                    renderizarPainelDeFotosExistentesParaEdicao();
-                };
-                item.appendChild(img);
-                item.appendChild(btn);
-                grid.appendChild(item);
+            fotosTemporariasEdicao.forEach((f, idx) => {
+                const box = document.createElement('div');
+                box.className = 'foto-atual-item';
+                box.innerHTML = `<img src="${f}"><button type="button" class="btn-remover-foto" onclick="removerFotoTemporariaDaEdicao(${idx})">Remover</button>`;
+                grid.appendChild(box);
             });
         }
 
-        async function deletarPecaAtual() {
-            if (pecas.length === 0) return;
-            const peca = pecas[currentIndex];
-            if (confirm(`✕ Atenção!\nTem certeza absoluta de que deseja remover permanentemente o registro da peça "${peca.nome}" (Código: ${peca.codigo})?`)) {
-                try {
-                    const database = await obterDB();
-                    const tx = database.transaction("pecas", "readwrite");
-                    tx.objectStore("pecas").delete(peca.id);
-                    tx.oncomplete = () => {
-                        if (currentIndex > 0) currentIndex--;
-                        currentPhotoIndex = 0;
-                        carregarPecas();
-                    };
-                } catch (err) {
-                    console.error(err);
-                    alert("Erro ao excluir o registro.");
-                }
-            }
+        function removerFotoTemporariaDaEdicao(index) {
+            fotosTemporariasEdicao.splice(index, 1);
+            renderizarPainelDeFotosExistentesParaEdicao();
         }
 
-        async function compartilharPecaAtual() {
+        function deletarPecaAtual() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
-            let msg = `*DADOS DA PEÇA TÉCNICA*\n\n`;
-            msg += `*Peça:* ${peca.nome}\n`;
-            msg += `*Código:* ${peca.codigo}\n\n`;
-            if (peca.medidas && peca.medidas.length > 0) {
-                msg += `*MEDIDAS:*\n`;
-                peca.medidas.forEach(m => {
-                    msg += ` ◆ *${m.nome}:* ${m.valor} ${m.unidade}\n`;
-                });
-                msg += `\n`;
-            }
-            if (peca.observacao && peca.observacao.trim() !== "") {
-                msg += `*Observações:* ${peca.observacao}\n\n`;
-            }
-            msg += `_Enviado via Catálogo Técnico_`;
-            let shareData = { title: `Dados da Peça - ${peca.codigo}`, text: msg };
-            if (navigator.canShare && peca.fotos && peca.fotos.length > 0) {
-                try {
-                    const blob = await fetch(peca.fotos[0]).then(r => r.blob());
-                    const file = new File([blob], `peca_${peca.codigo}.png`, { type: blob.type });
-                    if (navigator.canShare({ files: [file] })) {
-                        shareData.files = [file];
-                    }
-                } catch (e) {
-                    console.log("Erro ao processar imagem para compartilhamento:", e);
-                }
-            }
-            if (navigator.share) {
-                navigator.share(shareData).catch(err => console.log("Compartilhamento cancelado ou erro: ", err));
-            } else {
-                navigator.clipboard.writeText(msg).then(() => {
-                    alert("Dados copiados para a área de transferência! Prontos para colar (Ctrl+V) em qualquer mensagem.");
-                }).catch(err => {
-                    alert("Não foi possível compartilhar ou copiar os dados automaticamente.");
-                });
-            }
-        }
 
-        function exportarCatalogoPDF() {
-            if (pecas.length === 0) {
-                alert("Nenhuma peça cadastrada para exportar.");
-                return;
-            }
-            const printWindow = window.open('', '_blank');
-            let htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Catálogo Técnico de Peças</title>
-                <style>
-                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #0f172a; padding: 12px; margin: 0; background: #fff; }
-                    .header-print { text-align: center; border-bottom: 2px solid #64a0bc; padding-bottom: 8px; margin-bottom: 15px; }
-                    .header-print h1 { margin: 0; font-size: 20px; color: #1e3a8a; }
-                    .header-print p { margin: 4px 0 0 0; font-size: 11px; color: #64748b; }
-                    .peca-block { display: flex; gap: 12px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 12px; page-break-inside: avoid; }
-                    .peca-left-box { display: flex; flex-direction: column; align-items: center; width: 110px; flex-shrink: 0; gap: 4px; }
-                    .peca-img-box { width: 110px; height: 110px; border: 1px solid #cbd5e1; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: #f8fafc; overflow: hidden; }
-                    .peca-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-                    .no-img-text { font-size: 10px; color: #94a3b8; }
-                    .peca-codigo-print { font-size: 11px; font-weight: bold; color: #0f172a; text-align: center; width: 100%; word-break: break-all; }
-                    .peca-details { flex: 1; }
-                    .peca-text-format { margin: 0; font-size: 12px; line-height: 1.5; white-space: pre-wrap; font-family: inherit; }
-                </style>
-            </head>
-            <body>
-                <div class="header-print">
-                    <h1>Catálogo Técnico de Peças</h1>
-                    <p>Relatório gerado em ${new Date().toLocaleString('pt-BR')}</p>
-                </div>`;
+            const confirmacao = confirm(`⚠️ Excluir Registro?\nDeseja apagar permanentemente a peça:\n"${peca.nome}" (Código: ${peca.codigo})?`);
+            if (!confirmacao) return;
+
+            const tx = db.transaction("pecas", "readwrite");
+            tx.objectStore("pecas").delete(peca.id);
             
-            pecas.forEach(peca => {
-                htmlContent += `
-                <div class="peca-block">
-                    <div class="peca-left-box">
-                        <div class="peca-img-box">
-                            ${peca.fotos && peca.fotos.length > 0 ? `<img src="${peca.fotos[0]}">` : `<span class="no-img-text">Sem foto</span>`}
-                        </div>
-                        <div class="peca-codigo-print">${peca.codigo}</div>
-                    </div>
-                    <div class="peca-details">
-                        <pre class="peca-text-format"><strong>Peça:</strong> ${peca.nome}`;
-                if (peca.medidas && peca.medidas.length > 0) {
-                    htmlContent += `\n\n<strong>Medidas:</strong>`;
-                    peca.medidas.forEach(m => {
-                        htmlContent += `\n • ${m.nome}: ${m.valor} ${m.unidade}`;
-                    });
-                }
-                if (peca.observacao && peca.observacao.trim() !== "") {
-                    htmlContent += `\n\n<strong>Observações:</strong> ${peca.observacao}`;
-                }
-                htmlContent += `</pre>
-                    </div>
-                </div>`;
-            });
-            htmlContent += `
-                <script>
-                    window.onload = function() { setTimeout(() => { window.print(); }, 500); };
-                <\/script>
-            </body>
-            </html>`;
-            printWindow.document.open();
-            printWindow.document.write(htmlContent);
-            printWindow.document.close();
-        }
-
-        function atualizarSliderFotos(listaFotos) {
-            const slider = document.getElementById('imageSlider');
-            const dotsContainer = document.getElementById('dotsContainer');
-            slider.innerHTML = '';
-            dotsContainer.innerHTML = '';
-            if (!listaFotos || listaFotos.length === 0) {
-                slider.innerHTML = `<div class="slide"><div class="no-image">Nenhuma imagem anexada</div></div>`;
+            tx.oncomplete = () => {
+                currentIndex = Math.max(0, currentIndex - 1);
                 currentPhotoIndex = 0;
-                return;
-            }
-            if (currentPhotoIndex >= listaFotos.length) {
-                currentPhotoIndex = 0;
-            }
-            listaFotos.forEach((f, idx) => {
-                const slide = document.createElement('div');
-                slide.className = 'slide';
-                const img = document.createElement('img');
-                img.src = f;
-                img.alt = `Foto ${idx + 1}`;
-                img.loading = "lazy";
-                slide.appendChild(img);
-                slider.appendChild(slide);
-                const dot = document.createElement('div');
-                dot.className = `dot ${idx === currentPhotoIndex ? 'active' : ''}`;
-                dotsContainer.appendChild(dot);
-            });
-            slider.style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
+                carregarPecas();
+            };
         }
 
-        function mudarFoto(direcao) {
-            const peca = pecas[currentIndex];
-            if (!peca || !peca.fotos || peca.fotos.length <= 1) return;
-            currentPhotoIndex += direcao;
-            if (currentPhotoIndex < 0) {
-                currentPhotoIndex = peca.fotos.length - 1;
-            } else if (currentPhotoIndex >= peca.fotos.length) {
-                currentPhotoIndex = 0;
-            }
-            const slider = document.getElementById('imageSlider');
-            slider.style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
-            const dots = document.querySelectorAll('.dots-container .dot');
-            dots.forEach((dot, idx) => {
-                dot.classList.toggle('active', idx === currentPhotoIndex);
-            });
-        }
-
-        function mudarPeca(direcao) {
-            if (pecas.length <= 1 || estaAnimandoPeca) return;
-            let novoIndex = currentIndex + direcao;
-            if (novoIndex < 0) novoIndex = pecas.length - 1;
-            if (novoIndex >= pecas.length) novoIndex = 0;
-            currentIndex = novoIndex;
-            currentPhotoIndex = 0;
-            exibirPecaAtual();
-        }
-
-        async function exportarDadosSistema() {
+        function exportarDadosSistema() {
             if (pecas.length === 0) {
                 alert("Não há dados cadastrados para exportar no momento.");
                 return;
             }
-            try {
-                const database = await obterDB();
-                const tx = database.transaction("nomesMedidas", "readonly");
-                tx.objectStore("nomesMedidas").getAll().onsuccess = (e) => {
-                    const configMedidas = e.target.result;
-                    const backupCompleto = {
-                        tipo: "BACKUP_CATALOGO_TECNICO_PWA",
-                        versao: 1,
-                        dataGeracao: new Date().toISOString(),
-                        pecas: pecas,
-                        configuracoesMedidas: configMedidas
-                    };
-                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupCompleto));
-                    const downloadAnchor = document.createElement('a');
-                    const dataFormatada = new Date().toISOString().slice(0,10);
-                    downloadAnchor.setAttribute("href", dataStr);
-                    downloadAnchor.setAttribute("download", `backup_catalogo_tecnico_${dataFormatada}.json`);
-                    document.body.appendChild(downloadAnchor);
-                    downloadAnchor.click();
-                    downloadAnchor.remove();
-                    localStorage.setItem("ct_ultimo_backup", new Date().toLocaleString('pt-BR'));
-                    atualizarMetadadosBackupLabels();
+
+            const tx = db.transaction("nomesMedidas", "readonly");
+            tx.objectStore("nomesMedidas").getAll().onsuccess = (e) => {
+                const configMedidas = e.target.result;
+                const backupCompleto = {
+                    tipo: "BACKUP_CATALOGO_TECNICO_PWA",
+                    versao: 1,
+                    dataGeracao: new Date().toISOString(),
+                    pecas: pecas,
+                    configuracoesMedidas: configMedidas
                 };
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao exportar dados.");
-            }
+
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupCompleto));
+                const downloadAnchor = document.createElement('a');
+                
+                const dataFormatada = new Date().toISOString().slice(0,10);
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", `backup_catalogo_tecnico_${dataFormatada}.json`);
+                
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+
+                localStorage.setItem("ct_ultimo_backup", new Date().toLocaleString('pt-BR'));
+                atualizarMetadadosBackupLabels();
+            };
         }
 
         function importarDadosSistema(input) {
             const file = input.files[0];
             if (!file) return;
+
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const dadosImportados = JSON.parse(e.target.result);
+                    
                     if (!dadosImportados || dadosImportados.tipo !== "BACKUP_CATALOGO_TECNICO_PWA") {
                         throw new Error("O arquivo selecionado não é um arquivo válido de backup deste catálogo.");
                     }
-                    const confirmacao = confirm(`📥 Confirmar Restauração:\nEncontramos ${dadosImportados.pecas.length} peças no arquivo.\nIsso substituirá todos os dados locais atuais. Deseja prosseguir?`);
-                    if (!confirmacao) return;
-                    
+
+                    const confirmacao = confirm(`📥 Confirmar Restauração:\nEncontramos ${dadosImportados.pecas.length} peças no arquivo de backup.\nDeseja sobrescrever e substituir o banco de dados atual por este?`);
+                    if (!confirmacao) { input.value = ''; return; }
+
                     await executarLimpezaBancoDados();
-                    
-                    const database = await obterDB();
-                    const tx = database.transaction(["pecas", "nomesMedidas"], "readwrite");
-                    const storeP = tx.objectStore("pecas");
-                    dadosImportados.pecas.forEach(p => {
-                        delete p.id;
-                        storeP.add(p);
-                    });
-                    const storeM = tx.objectStore("nomesMedidas");
-                    if (dadosImportados.configuracoesMedidas) {
-                        dadosImportados.configuracoesMedidas.forEach(m => {
-                            storeM.put(m);
+
+                    const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
+                    const storePecas = tx.objectStore("pecas");
+                    const storeMedidas = tx.objectStore("nomesMedidas");
+
+                    if (dadosImportados.pecas && dadosImportados.pecas.length > 0) {
+                        dadosImportados.pecas.forEach(p => {
+                            delete p.id; 
+                            storePecas.add(p);
                         });
                     }
+
+                    if (dadosImportados.configuracoesMedidas && dadosImportados.configuracoesMedidas.length > 0) {
+                        dadosImportados.configuracoesMedidas.forEach(m => {
+                            storeMedidas.put(m);
+                        });
+                    }
+
                     tx.oncomplete = () => {
-                        alert("Dados importados e restaurados com absoluto sucesso!");
-                        localStorage.setItem("ct_ultimo_restauro", new Date().toLocaleString('pt-BR'));
+                        localStorage.setItem("ct_ultima_restauracao", new Date().toLocaleString('pt-BR'));
+                        alert("Dados importados e restaurados com completo sucesso!");
                         currentIndex = 0;
                         currentPhotoIndex = 0;
                         carregarPecas();
                         closeModal('backupModal');
                     };
+
                 } catch (err) {
-                    alert("Erro ao importar o arquivo: " + err.message);
+                    alert(`✕ Erro na Importação:\n${err.message || "Não foi possível processar o arquivo JSON."}`);
+                } finally {
+                    input.value = '';
                 }
             };
             reader.readAsText(file);
-            input.value = '';
         }
 
-        async function executarLimpezaBancoDados() {
-            const database = await obterDB();
+        function atualizarMetadadosBackupLabels() {
+            const uBackup = localStorage.getItem("ct_ultimo_backup") || "--";
+            const uRestauro = localStorage.getItem("ct_ultima_restauracao") || "--";
+            document.getElementById('lblUltimoBackup').innerText = uBackup;
+            document.getElementById('lblUltimoRestauro').innerText = uRestauro;
+        }
+
+        function executarLimpezaBancoDados() {
             return new Promise((resolve, reject) => {
-                const tx = database.transaction(["pecas", "nomesMedidas"], "readwrite");
+                const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
                 const storePecas = tx.objectStore("pecas");
                 const storeMedidas = tx.objectStore("nomesMedidas");
+                
                 storePecas.clear();
                 storeMedidas.clear();
+
                 tx.oncomplete = () => resolve(true);
                 tx.onerror = (e) => reject(e);
             });
@@ -1893,11 +1973,13 @@
         async function limparTodoOSistemaComAviso() {
             const confirmacao1 = confirm("⚠️ Alerta Crítico:\nVocê tem certeza absoluta que deseja apagar TODAS as peças e configurações de medidas cadastradas do dispositivo?");
             if (!confirmacao1) return;
+
             const confirmacao2 = prompt("Para confirmar a exclusão permanente de todo o sistema, digite o termo abaixo:\nEXCLUIR");
             if (confirmacao2 !== "EXCLUIR" && confirmacao2 !== "excluir") {
                 alert("Confirmação inválida. Operação abortada.");
                 return;
             }
+
             try {
                 await executarLimpezaBancoDados();
                 alert("O sistema foi totalmente resetado para as configurações de fábrica.");
