@@ -941,22 +941,43 @@
         const dbName = "CatalogoTecnicoDB";
 
         function initDB() {
-            const request = indexedDB.open(dbName, 1);
-            
-            request.onerror = (e) => console.error("Erro IndexedDB:", e);
-            
-            request.onsuccess = (e) => {
-                db = e.target.result;
-                carregarPecas();
-                atualizarMetadadosBackupLabels();
-            };
+            return new Promise((resolve, reject) => {
+                if (db) {
+                    resolve(db);
+                    return;
+                }
+                const request = indexedDB.open(dbName, 1);
+                
+                request.onerror = (e) => {
+                    console.error("Erro IndexedDB:", e);
+                    reject(e);
+                };
+                
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    carregarPecas();
+                    atualizarMetadadosBackupLabels();
+                    resolve(db);
+                };
 
-            request.onupgradeneeded = (e) => {
-                db = e.target.result;
-                const store = db.createObjectStore("pecas", { keyPath: "id", autoIncrement: true });
-                store.createIndex("codigo", "codigo", { unique: true });
-                db.createObjectStore("nomesMedidas", { keyPath: "nome" });
-            };
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    const store = db.createObjectStore("pecas", { keyPath: "id", autoIncrement: true });
+                    store.createIndex("codigo", "codigo", { unique: true });
+                    db.createObjectStore("nomesMedidas", { keyPath: "nome" });
+                };
+            });
+        }
+
+        // Garante de forma assíncrona que o DB está disponível antes de executar transações críticas
+        async function obterDB() {
+            if (!db) {
+                await initDB();
+            }
+            if (!db) {
+                throw new Error("Não foi possível conectar ao Banco de Dados local do dispositivo.");
+            }
+            return db;
         }
 
         let pecas = [];
@@ -1321,7 +1342,7 @@
             };
         }
 
-        function abrirModalDeletarOpcao(valorOriginal) {
+        async function abrirModalDeletarOpcao(valorOriginal) {
             const selectAlvo = document.getElementById('deletarSelectAlvo');
             selectAlvo.innerHTML = '';
             nomesMedidasExistentes.forEach(m => {
@@ -1341,51 +1362,68 @@
             }
         }
 
-        function confirmarDeletarMedidaGlobal() {
+        async function confirmarDeletarMedidaGlobal() {
             const alvo = document.getElementById('deletarSelectAlvo').value;
             if (!alvo) return;
-            const tx = db.transaction("nomesMedidas", "readwrite");
-            tx.objectStore("nomesMedidas").delete(alvo);
-            tx.oncomplete = () => {
-                closeModal('deletarOpcaoModal');
-                carregarMedidasGlobaisDoBanco().then(() => {
-                    const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
-                    todosSelects.forEach(sel => {
-                        const valAtual = sel.value;
-                        atualizarSelectDeOpcoesDeMedidas(sel, valAtual === alvo ? "" : valAtual);
+            try {
+                const database = await obterDB();
+                const tx = database.transaction("nomesMedidas", "readwrite");
+                tx.objectStore("nomesMedidas").delete(alvo);
+                tx.oncomplete = () => {
+                    closeModal('deletarOpcaoModal');
+                    carregarMedidasGlobaisDoBanco().then(() => {
+                        const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
+                        todosSelects.forEach(sel => {
+                            const valAtual = sel.value;
+                            atualizarSelectDeOpcoesDeMedidas(sel, valAtual === alvo ? "" : valAtual);
+                        });
+                        alert("A opção foi removida com sucesso da lista de sugestões.");
                     });
-                    alert("A opção foi removida com sucesso da lista de sugestões.");
-                });
-            };
-        }
-
-        function salvarNovaMedidaGlobalNoBanco(nomeMedida) {
-            const tx = db.transaction("nomesMedidas", "readwrite");
-            tx.objectStore("nomesMedidas").put({ nome: nomeMedida });
-            tx.oncomplete = () => {
-                carregarMedidasGlobaisDoBanco().then(() => {
-                    const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
-                    todosSelects.forEach(sel => {
-                        const valorSalvoNoSelect = sel.value;
-                        if (sel === selectDisparadorOriginal) {
-                            atualizarSelectDeOpcoesDeMedidas(sel, nomeMedida);
-                        } else {
-                            atualizarSelectDeOpcoesDeMedidas(sel, valorSalvoNoSelect);
-                        }
-                    });
-                });
-            };
-        }
-
-        function carregarMedidasGlobaisDoBanco() {
-            return new Promise((resolve) => {
-                const tx = db.transaction("nomesMedidas", "readonly");
-                const store = tx.objectStore("nomesMedidas");
-                const req = store.getAll();
-                req.onsuccess = () => {
-                    nomesMedidasExistentes = req.result.map(r => r.nome).sort((a,b) => a.localeCompare(b));
-                    resolve(true);
                 };
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao remover a opção.");
+            }
+        }
+
+        async function salvarNovaMedidaGlobalNoBanco(nomeMedida) {
+            try {
+                const database = await obterDB();
+                const tx = database.transaction("nomesMedidas", "readwrite");
+                tx.objectStore("nomesMedidas").put({ nome: nomeMedida });
+                tx.oncomplete = () => {
+                    carregarMedidasGlobaisDoBanco().then(() => {
+                        const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
+                        todosSelects.forEach(sel => {
+                            const valorSalvoNoSelect = sel.value;
+                            if (sel === selectDisparadorOriginal) {
+                                atualizarSelectDeOpcoesDeMedidas(sel, nomeMedida);
+                            } else {
+                                atualizarSelectDeOpcoesDeMedidas(sel, valorSalvoNoSelect);
+                            }
+                        });
+                    });
+                };
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function carregarMedidasGlobaisDoBanco() {
+            return new Promise(async (resolve) => {
+                try {
+                    const database = await obterDB();
+                    const tx = database.transaction("nomesMedidas", "readonly");
+                    const store = tx.objectStore("nomesMedidas");
+                    const req = store.getAll();
+                    req.onsuccess = () => {
+                        nomesMedidasExistentes = req.result.map(r => r.nome).sort((a,b) => a.localeCompare(b));
+                        resolve(true);
+                    };
+                } catch (err) {
+                    console.error(err);
+                    resolve(false);
+                }
             });
         }
 
@@ -1402,17 +1440,22 @@
             });
         }
 
-        function carregarPecas() {
-            const tx = db.transaction("pecas", "readonly");
-            const store = tx.objectStore("pecas");
-            const request = store.getAll();
-            request.onsuccess = () => {
-                pecas = request.result;
-                if (currentIndex >= pecas.length) {
-                    currentIndex = Math.max(0, pecas.length - 1);
-                }
-                exibirPecaAtual();
-            };
+        async function carregarPecas() {
+            try {
+                const database = await obterDB();
+                const tx = database.transaction("pecas", "readonly");
+                const store = tx.objectStore("pecas");
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    pecas = request.result;
+                    if (currentIndex >= pecas.length) {
+                        currentIndex = Math.max(0, pecas.length - 1);
+                    }
+                    exibirPecaAtual();
+                };
+            } catch (err) {
+                console.error(err);
+            }
         }
 
         function otimizarEComprimirFotoCanvas(file) {
@@ -1490,28 +1533,35 @@
             }
             const registroPeca = { nome, codigo, fotos: fotosFinais, medidas, observacao, responsavel };
             if (idVal !== "") registroPeca.id = Number(idVal);
-            const tx = db.transaction("pecas", "readwrite");
-            const store = tx.objectStore("pecas");
-            let requestAction;
-            if (idVal !== "") {
-                requestAction = store.put(registroPeca);
-            } else {
-                requestAction = store.add(registroPeca);
-            }
-            requestAction.onsuccess = () => {
-                tx.oncomplete = () => {
-                    closeModal('cadastroModal');
-                    if (idVal === "") {
-                        currentIndex = pecas.length;
-                    }
-                    currentPhotoIndex = 0;
-                    carregarPecas();
+            
+            try {
+                const database = await obterDB();
+                const tx = database.transaction("pecas", "readwrite");
+                const store = tx.objectStore("pecas");
+                let requestAction;
+                if (idVal !== "") {
+                    requestAction = store.put(registroPeca);
+                } else {
+                    requestAction = store.add(registroPeca);
+                }
+                requestAction.onsuccess = () => {
+                    tx.oncomplete = () => {
+                        closeModal('cadastroModal');
+                        if (idVal === "") {
+                            currentIndex = pecas.length;
+                        }
+                        currentPhotoIndex = 0;
+                        carregarPecas();
+                    };
                 };
-            };
-            requestAction.onerror = (err) => {
-                err.preventDefault();
-                alert(`⚠️ Conflito de Código!\nO código "${codigo}" já pertence a outra peça cadastrada.`);
-            };
+                requestAction.onerror = (err) => {
+                    err.preventDefault();
+                    alert(`⚠️ Conflito de Código!\nO código "${codigo}" já pertence a outra peça cadastrada.`);
+                };
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao salvar o registro no banco de dados.");
+            }
         }
 
         function prepararEdicao() {
@@ -1567,17 +1617,23 @@
             });
         }
 
-        function deletarPecaAtual() {
+        async function deletarPecaAtual() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
             if (confirm(`✕ Atenção!\nTem certeza absoluta de que deseja remover permanentemente o registro da peça "${peca.nome}" (Código: ${peca.codigo})?`)) {
-                const tx = db.transaction("pecas", "readwrite");
-                tx.objectStore("pecas").delete(peca.id);
-                tx.oncomplete = () => {
-                    if (currentIndex > 0) currentIndex--;
-                    currentPhotoIndex = 0;
-                    carregarPecas();
-                };
+                try {
+                    const database = await obterDB();
+                    const tx = database.transaction("pecas", "readwrite");
+                    tx.objectStore("pecas").delete(peca.id);
+                    tx.oncomplete = () => {
+                        if (currentIndex > 0) currentIndex--;
+                        currentPhotoIndex = 0;
+                        carregarPecas();
+                    };
+                } catch (err) {
+                    console.error(err);
+                    alert("Erro ao excluir o registro.");
+                }
             }
         }
 
@@ -1740,32 +1796,38 @@
             exibirPecaAtual();
         }
 
-        function exportarDadosSistema() {
+        async function exportarDadosSistema() {
             if (pecas.length === 0) {
                 alert("Não há dados cadastrados para exportar no momento.");
                 return;
             }
-            const tx = db.transaction("nomesMedidas", "readonly");
-            tx.objectStore("nomesMedidas").getAll().onsuccess = (e) => {
-                const configMedidas = e.target.result;
-                const backupCompleto = {
-                    tipo: "BACKUP_CATALOGO_TECNICO_PWA",
-                    versao: 1,
-                    dataGeracao: new Date().toISOString(),
-                    pecas: pecas,
-                    configuracoesMedidas: configMedidas
+            try {
+                const database = await obterDB();
+                const tx = database.transaction("nomesMedidas", "readonly");
+                tx.objectStore("nomesMedidas").getAll().onsuccess = (e) => {
+                    const configMedidas = e.target.result;
+                    const backupCompleto = {
+                        tipo: "BACKUP_CATALOGO_TECNICO_PWA",
+                        versao: 1,
+                        dataGeracao: new Date().toISOString(),
+                        pecas: pecas,
+                        configuracoesMedidas: configMedidas
+                    };
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupCompleto));
+                    const downloadAnchor = document.createElement('a');
+                    const dataFormatada = new Date().toISOString().slice(0,10);
+                    downloadAnchor.setAttribute("href", dataStr);
+                    downloadAnchor.setAttribute("download", `backup_catalogo_tecnico_${dataFormatada}.json`);
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click();
+                    downloadAnchor.remove();
+                    localStorage.setItem("ct_ultimo_backup", new Date().toLocaleString('pt-BR'));
+                    atualizarMetadadosBackupLabels();
                 };
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupCompleto));
-                const downloadAnchor = document.createElement('a');
-                const dataFormatada = new Date().toISOString().slice(0,10);
-                downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", `backup_catalogo_tecnico_${dataFormatada}.json`);
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-                localStorage.setItem("ct_ultimo_backup", new Date().toLocaleString('pt-BR'));
-                atualizarMetadadosBackupLabels();
-            };
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao exportar dados.");
+            }
         }
 
         function importarDadosSistema(input) {
@@ -1780,8 +1842,11 @@
                     }
                     const confirmacao = confirm(`📥 Confirmar Restauração:\nEncontramos ${dadosImportados.pecas.length} peças no arquivo.\nIsso substituirá todos os dados locais atuais. Deseja prosseguir?`);
                     if (!confirmacao) return;
+                    
                     await executarLimpezaBancoDados();
-                    const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
+                    
+                    const database = await obterDB();
+                    const tx = database.transaction(["pecas", "nomesMedidas"], "readwrite");
                     const storeP = tx.objectStore("pecas");
                     dadosImportados.pecas.forEach(p => {
                         delete p.id;
@@ -1809,9 +1874,10 @@
             input.value = '';
         }
 
-        function executarLimpezaBancoDados() {
+        async function executarLimpezaBancoDados() {
+            const database = await obterDB();
             return new Promise((resolve, reject) => {
-                const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
+                const tx = database.transaction(["pecas", "nomesMedidas"], "readwrite");
                 const storePecas = tx.objectStore("pecas");
                 const storeMedidas = tx.objectStore("nomesMedidas");
                 storePecas.clear();
