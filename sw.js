@@ -2,7 +2,16 @@ const CACHE_NAME = 'catalogo-v2';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './favicon.png', // O ícone é obrigatório para a instalação PWA
+  './img/opcao_buscar.png',
+  './img/opcao_lista.png',
+  './img/opcao_catalogo.png',
+  './img/opcao_restauracao.png',
+  './img/opcao_novo.png',
+  './img/opcao_compartilhar.png',
+  './img/opcao_editar.png',
+  './img/opcao_excluir.png'
 ];
 
 // Instala o Service Worker e armazena os arquivos estruturais
