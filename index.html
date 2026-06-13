@@ -166,6 +166,8 @@
             border-radius: 12px;
             border: 1px solid #334155;
             box-shadow: var(--shadow-sm);
+            touch-action: none; /* Impede comportamento nativo do navegador para aceitar os gestos perfeitamente */
+            user-select: none;
         }
 
         .image-slider {
@@ -173,6 +175,7 @@
             height: 100%;
             width: 100%;
             transition: transform 0.25s ease-out;
+            pointer-events: none; /* Permite que o touch chegue direto no container pai */
         }
 
         .slide {
@@ -416,7 +419,6 @@
             opacity: 1;
         }
 
-        /* Mudança de prioridade visual para o modal secundário de exclusão */
         #deletarOpcaoModal {
             z-index: 110 !important;
         }
@@ -1129,6 +1131,12 @@
         const dbName = "CatalogoTecnicoDB";
         const dbVersion = 1;
 
+        // Variáveis globais para rastreamento do sistema de gestos por toque (Swipe)
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+
         function initDB() {
             const request = indexedDB.open(dbName, dbVersion);
 
@@ -1147,12 +1155,60 @@
                 inicializarNomesMedidasBase().then(() => {
                     carregarPecas();
                     carregarLabelsMetadadosBackup();
+                    configurarGestosTouchViewer(); // Ativa os gestos assim que o banco inicia
                 });
             };
 
             request.onerror = function() {
                 alert("Erro ao abrir o banco de dados local.");
             };
+        }
+
+        // Nova implementação robusta de detecção de gestos (Horizontal e Vertical)
+        function configurarGestosTouchViewer() {
+            const viewer = document.getElementById("imageViewer");
+            if (!viewer) return;
+
+            viewer.addEventListener("touchstart", function(e) {
+                // Captura a posição inicial do toque
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+
+            viewer.addEventListener("touchend", function(e) {
+                // Captura a posição final onde o usuário soltou o dedo
+                touchEndX = e.changedTouches[0].clientX;
+                touchEndY = e.changedTouches[0].clientY;
+                analisarGestoSwipe();
+            }, { passive: true });
+        }
+
+        function analisarGestoSwipe() {
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            
+            const minSwipeDistance = 45; // Distância mínima em pixels para validar o movimento
+
+            // Compara se o movimento foi majoritariamente Horizontal ou Vertical
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                // Gesto Horizontal -> Muda a imagem da peça atual
+                if (Math.abs(diffX) > minSwipeDistance) {
+                    if (diffX > 0) {
+                        mudarFoto(-1); // Deslizar para a direita mostra a foto anterior
+                    } else {
+                        mudarFoto(1);  // Deslizar para a esquerda mostra a próxima foto
+                    }
+                }
+            } else {
+                // Gesto Vertical -> Muda a peça completa
+                if (Math.abs(diffY) > minSwipeDistance) {
+                    if (diffY > 0) {
+                        mudarPeca(-1); // Deslizar para baixo mostra a peça anterior
+                    } else {
+                        mudarPeca(1);  // Deslizar para cima mostra a próxima peça
+                    }
+                }
+            }
         }
 
         function inicializarNomesMedidasBase() {
@@ -2078,7 +2134,7 @@
             }
         }
 
-        async function executarImportacaoTotalSubstitutiva(pacote) {
+        async function ejecutarImportacaoTotalSubstitutiva(pacote) {
             try {
                 await executarLimpezaBancoDados();
 
@@ -2142,7 +2198,7 @@
                     : `<span class="import-badge import-badge-new">Novo</span>`;
 
                 div.innerHTML = `
-                    <input type="checkbox" class="import-item-checkbox" data-index="${index}" checked onchange="atualizarContadorSelecaoIncremental()">
+                    <input type="checkbox" class="import-item-checkbox" data-index="${index}" checked onchange="atualizarContadorSelecionadosIncremental()">
                     ${thumbHtml}
                     <div class="import-item-info">
                         <div class="import-item-name">${p.nome}</div>
@@ -2154,21 +2210,21 @@
             });
 
             openModal("importIncrementalModal");
-            atualizarContadorSelecaoIncremental();
+            atualizarContadorSelecionadosIncremental();
         }
 
         function marcarDesmarcarTodosImport(status) {
             const checkboxes = document.querySelectorAll(".import-item-checkbox");
             checkboxes.forEach(cb => cb.checked = status);
-            atualizarContadorSelecaoIncremental();
+            atualizarContadorSelecionadosIncremental();
         }
 
-        function atualizarContadorSelecaoIncremental() {
+        function atualizarContadorSelecionadosIncremental() {
             const selecionados = document.querySelectorAll(".import-item-checkbox:checked").length;
             document.getElementById("importContadorSelecionados").textContent = `${selecionados} itens selecionados`;
         }
 
-        function ejecutarImportacaoIncrementalConfirmada() {
+        function executarImportacaoIncrementalConfirmada() {
             const checkboxes = document.querySelectorAll(".import-item-checkbox:checked");
             if (checkboxes.length === 0) {
                 alert("Selecione pelo menos um item para importar.");
