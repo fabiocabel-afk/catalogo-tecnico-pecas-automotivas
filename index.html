@@ -513,7 +513,7 @@
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 0.4rem;
+gap: 0.4rem;
         }
 
         .form-group label {
@@ -711,6 +711,136 @@
             border: 1px solid #fca5a5;
         }
         .backup-btn-danger:active { background: #ffeeec; }
+
+        /* ===== NOVOS ESTILOS EXCLUSIVOS DA TELA DE IMPORTAÇÃO ===== */
+        .import-choice-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 0.5rem 0;
+        }
+        .import-choice-card {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            cursor: pointer;
+            background: var(--surface);
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .import-choice-card:active {
+            background: #f8fafc;
+            border-color: var(--primary);
+        }
+        .import-choice-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .import-choice-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .import-toolbar {
+            background: #f1f5f9;
+            padding: 0.65rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px;
+            margin-bottom: 0.8rem;
+            border: 1px solid var(--border);
+        }
+        .import-toolbar-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .import-list-container {
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+        }
+        .import-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            gap: 0.75rem;
+        }
+        .import-item:last-child {
+            border-bottom: none;
+        }
+        .import-item-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .import-item-thumb {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+            background: #000;
+        }
+        .import-item-thumb-empty {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .import-item-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            min-width: 0;
+        }
+        .import-item-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .import-item-code {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .import-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+        .import-badge-new {
+            background: #e6f4ea;
+            color: #137333;
+        }
+        .import-badge-update {
+            background: #fef7e0;
+            color: #b06000;
+        }
     </style>
 </head>
 <body>
@@ -871,6 +1001,46 @@
         </div>
     </div>
 
+    <div class="modal" id="importOpcaoModal">
+        <div class="modal-content" style="padding: 1.4rem;">
+            <h3 style="font-size:1.1rem; margin-bottom:0.8rem;">Como deseja importar os dados?</h3>
+            <div class="import-choice-container">
+                <div class="import-choice-card" onclick="selecionarMetodoImportacao('total')">
+                    <div class="import-choice-title">⚠️ Restauração Completa</div>
+                    <div class="import-choice-desc">Apaga completamente todas as peças atuais e configura as definições com base no ficheiro de backup.</div>
+                </div>
+                <div class="import-choice-card" onclick="selecionarMetodoImportacao('incremental')">
+                    <div class="import-choice-title">🔄 Importação Incremental</div>
+                    <div class="import-choice-desc">Analisa peça a peça. Permite selecionar quais os novos itens a adicionar e quais os existentes a atualizar via código técnico.</div>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: center; margin-top: 1.2rem;">
+                <button class="btn-secondary" style="width:100%; padding:0.75rem; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="closeModal('importOpcaoModal')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="importIncrementalModal">
+        <div class="modal-content" style="padding: 1.4rem; max-width: 550px;">
+            <h3 style="font-size:1.1rem; margin-bottom:0.5rem;">Filtro de Importação Incremental</h3>
+            
+            <div class="import-toolbar">
+                <span id="importContadorSelecionados" style="font-size:0.85rem; font-weight:600; color:var(--text-secondary);">0 itens selecionados</span>
+                <div style="display:flex; gap:1rem;">
+                    <button class="import-toolbar-btn" onclick="marcarDesmarcarTodosImport(true)">Marcar Todas</button>
+                    <button class="import-toolbar-btn" onclick="marcarDesmarcarTodosImport(false)" style="color:var(--danger);">Desmarcar Todas</button>
+                </div>
+            </div>
+
+            <div class="import-list-container" id="importIncrementalLista"></div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.2rem;">
+                <button class="btn-secondary" style="padding:0.75rem; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="closeModal('importIncrementalModal')">Cancelar</button>
+                <button class="btn" style="padding:0.75rem; background: #10b981; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="executarImportacaoIncrementalConfirmada()">Concluir Importação</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="deletarOpcaoModal" style="z-index: 110;">
         <div class="modal-content" style="padding: 1.4rem; margin-top: 80px; max-width: 400px;">
             <h3 style="font-size:1.1rem; margin-bottom:0.8rem; color: var(--danger);">✕ Apagar Opção da Lista</h3>
@@ -951,7 +1121,6 @@
                             <div id="formHistoricoTexto" style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); background: #f1f5f9; padding: 0.65rem; border-radius: 6px; border: 1px solid var(--border);"></div>
                         </div>
                     </div>
-
                 </div>
 
                 <div class="modal-footer-buttons">
@@ -997,6 +1166,10 @@
         let selectDisparadorOriginal = null;
         let estaAnimandoPeca = false;
 
+        // Variáveis globais para o fluxo de importação da segunda camada
+        let backupDataTemporario = null;
+        let itensIncrementalMapeados = [];
+
         function toggleMenu() {
             document.getElementById('menuDropdown').classList.toggle('active');
         }
@@ -1024,7 +1197,6 @@
         function switchTab(tabId) {
             const tabButtons = document.querySelectorAll('.form-tab-btn');
             const tabContents = document.querySelectorAll('.form-tab-content');
-            
             tabButtons.forEach(btn => {
                 const target = btn.getAttribute('onclick');
                 if (target && target.includes(tabId)) {
@@ -1033,7 +1205,6 @@
                     btn.classList.remove('active');
                 }
             });
-
             tabContents.forEach(content => {
                 if (content.id === tabId) {
                     content.classList.add('active');
@@ -1055,14 +1226,14 @@
         }
 
         function obterTextoHistorico(peca) {
-    		if (!peca) return "";
-    		if (peca.dataAtualizacao) {
-        		return formatarDataHora(peca.dataAtualizacao);
-    		} else if (peca.dataCadastro) {
-        		return formatarDataHora(peca.dataCadastro);
-    		}
-    		return "";
-	}
+            if (!peca) return "";
+            if (peca.dataAtualizacao) {
+                return formatarDataHora(peca.dataAtualizacao);
+            } else if (peca.dataCadastro) {
+                return formatarDataHora(peca.dataCadastro);
+            }
+            return "";
+        }
 
         function resetarVisualizacaoVazia() {
             document.getElementById('viewNome').innerText = "Nenhuma peça cadastrada";
@@ -1086,9 +1257,7 @@
             document.getElementById('menuPecaActions').style.display = "flex";
             document.getElementById('infoIconBtn').style.display = "flex";
             document.getElementById('navPieceCounter').innerText = `${currentIndex + 1} / ${pecas.length}`;
-            
             atualizarSliderFotos(peca.fotos);
-            
             const tbody = document.getElementById('measurementsTableBody');
             tbody.innerHTML = '';
             peca.medidas.forEach(m => {
@@ -1113,14 +1282,9 @@
             if (peca.observacao && peca.observacao.trim() !== "") {
                 msg += `*Observações:* ${peca.observacao}\n\n`;
             }
-
             msg += `_Enviado via Catálogo Técnico_`;
 
-            let shareData = {
-                title: `Dados da Peça - ${peca.codigo}`,
-                text: msg
-            };
-
+            let shareData = { title: `Dados da Peça - ${peca.codigo}`, text: msg };
             if (navigator.canShare && peca.fotos && peca.fotos.length > 0) {
                 try {
                     const blob = await fetch(peca.fotos[0]).then(r => r.blob());
@@ -1145,19 +1309,16 @@
             const dotsContainer = document.getElementById('dotsContainer');
             slider.innerHTML = '';
             dotsContainer.innerHTML = '';
-
             if (!fotosArray || fotosArray.length === 0) {
                 slider.innerHTML = `<div class="slide"><div class="no-image">Nenhuma foto anexada</div></div>`;
                 return;
             }
-
             fotosArray.forEach((foto) => {
                 const div = document.createElement('div');
                 div.className = 'slide';
                 div.innerHTML = `<img src="${foto}" alt="Foto da peça">`;
                 slider.appendChild(div);
             });
-
             if (fotosArray.length > 1) {
                 fotosArray.forEach((_, idx) => {
                     const dot = document.createElement('div');
@@ -1165,7 +1326,6 @@
                     dotsContainer.appendChild(dot);
                 });
             }
-
             slider.style.transform = `translateX(0%)`;
             currentPhotoIndex = 0;
             configurarGestosTouchSlider();
@@ -1174,14 +1334,11 @@
         function mudarFoto(direcao) {
             const peca = pecas[currentIndex];
             if (!peca || !peca.fotos || peca.fotos.length <= 1) return;
-
             currentPhotoIndex += direcao;
             if (currentPhotoIndex < 0) currentPhotoIndex = peca.fotos.length - 1;
             if (currentPhotoIndex >= peca.fotos.length) currentPhotoIndex = 0;
-
             const slider = document.getElementById('imageSlider');
             slider.style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
-
             const dots = document.querySelectorAll('.dots-container .dot');
             dots.forEach((dot, idx) => {
                 dot.classList.toggle('active', idx === currentPhotoIndex);
@@ -1193,7 +1350,6 @@
             let novoIndex = currentIndex + direcao;
             if (novoIndex < 0) novoIndex = pecas.length - 1;
             if (novoIndex >= pecas.length) novoIndex = 0;
-
             currentIndex = novoIndex;
             currentPhotoIndex = 0;
             exibirPecaAtual();
@@ -1216,34 +1372,29 @@
             }
         }
 
-    function openInfoModal() {
-        if (pecas.length === 0) return;
-        const peca = pecas[currentIndex];
-        document.getElementById('infoModalTitle').innerText = peca.nome;
-    
-        if (peca.observacao && peca.observacao.trim() !== "") {
-            document.getElementById('infoObsContainer').style.display = "block";
-            document.getElementById('infoObservacaoText').innerText = peca.observacao;
-        } else {
-            document.getElementById('infoObsContainer').style.display = "none";
+        function openInfoModal() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+            document.getElementById('infoModalTitle').innerText = peca.nome;
+            if (peca.observacao && peca.observacao.trim() !== "") {
+                document.getElementById('infoObsContainer').style.display = "block";
+                document.getElementById('infoObservacaoText').innerText = peca.observacao;
+            } else {
+                document.getElementById('infoObsContainer').style.display = "none";
+            }
+            document.getElementById('infoMetaText').innerText = peca.responsavel || "Não informado";
+            const histText = obterTextoHistorico(peca);
+            const elCardHist = document.getElementById('infoDataHistoricoContainer');
+            const elTextHist = document.getElementById('infoDataHistoricoText');
+            if (histText) {
+                elCardHist.style.display = "block";
+                elTextHist.innerText = histText;
+            } else {
+                elCardHist.style.display = "none";
+                elTextHist.innerText = "";
+            }
+            openModal('infoModal');
         }
-    
-        document.getElementById('infoMetaText').innerText = peca.responsavel || "Não informado";
-    
-        const histText = obterTextoHistorico(peca);
-        const elCardHist = document.getElementById('infoDataHistoricoContainer');
-        const elTextHist = document.getElementById('infoDataHistoricoText');
-    
-        if (histText) {
-            elCardHist.style.display = "block";
-            elTextHist.innerText = histText;
-        } else {
-            elCardHist.style.display = "none";
-            elTextHist.innerText = "";
-        }
-    
-        openModal('infoModal');
-    }
 
         function openSearchModal() {
             document.getElementById('searchInput').value = '';
@@ -1256,31 +1407,26 @@
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const resultsContainer = document.getElementById('searchResults');
             resultsContainer.innerHTML = '';
-
             if (query === '') {
                 resultsContainer.style.display = 'none';
                 return;
             }
-
-            const filtradas = pecas.filter(p => 
-                p.nome.toLowerCase().includes(query) || 
-                p.codigo.toLowerCase().includes(query)
-            );
-
-            if (filtradas.length === 0) {
-                resultsContainer.innerHTML = `<div style="padding: 0.75rem; color: var(--text-secondary); font-size:0.9rem;">Nenhum resultado encontrado</div>`;
+            const filtrados = pecas.filter(p => p.nome.toLowerCase().includes(query) || p.codigo.toLowerCase().includes(query));
+            if (filtrados.length === 0) {
+                resultsContainer.innerHTML = `<div class="search-item" style="color:var(--text-secondary); text-align:center;">Nenhum resultado encontrado</div>`;
             } else {
-                filtradas.forEach(p => {
-                    const item = document.createElement('div');
-                    item.className = 'search-item';
-                    item.innerHTML = `<strong>${p.codigo}</strong> - ${p.nome}`;
-                    item.onclick = () => {
-                        currentIndex = pecas.findIndex(itemPeca => itemPeca.id === p.id);
+                filtrados.forEach(p => {
+                    const idxOriginal = pecas.findIndex(item => item.id === p.id);
+                    const div = document.createElement('div');
+                    div.className = 'search-item';
+                    div.innerHTML = `<strong>${p.nome}</strong> <span style="font-size:0.8rem; color:var(--text-secondary);">(${p.codigo})</span>`;
+                    div.onclick = () => {
+                        currentIndex = idxOriginal;
                         currentPhotoIndex = 0;
                         exibirPecaAtual();
                         closeModal('searchModal');
                     };
-                    resultsContainer.appendChild(item);
+                    resultsContainer.appendChild(div);
                 });
             }
             resultsContainer.style.display = 'block';
@@ -1289,22 +1435,23 @@
         function openListModal() {
             const container = document.getElementById('listModalResults');
             container.innerHTML = '';
-
             if (pecas.length === 0) {
-                container.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 2rem;">Nenhuma peça cadastrada no dispositivo.</div>`;
+                container.innerHTML = `<div style="padding:1rem; color:var(--text-secondary); text-align:center;">Nenhuma peça cadastrada.</div>`;
             } else {
-                const ordenadas = [...pecas].sort((a, b) => a.nome.localeCompare(b.nome));
-                ordenadas.forEach(p => {
-                    const item = document.createElement('div');
-                    item.className = 'search-item';
-                    item.innerHTML = `<strong>${p.codigo}</strong> - ${p.nome}`;
-                    item.onclick = () => {
-                        currentIndex = pecas.findIndex(itemPeca => itemPeca.id === p.id);
+                pecas.forEach((p, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'search-item';
+                    div.innerHTML = `<div style="display:flex; justify-content:between; width:100%;">
+                        <span style="flex:1;"><strong>${p.nome}</strong></span>
+                        <span style="color:var(--text-secondary); font-size:0.85rem;">${p.codigo}</span>
+                    </div>`;
+                    div.onclick = () => {
+                        currentIndex = idx;
                         currentPhotoIndex = 0;
                         exibirPecaAtual();
                         closeModal('listModal');
                     };
-                    container.appendChild(item);
+                    container.appendChild(div);
                 });
             }
             openModal('listModal');
@@ -1318,546 +1465,206 @@
         function openCadastroModal() {
             document.getElementById('modalTitle').innerText = "Cadastrar Nova Peça";
             document.getElementById('btnSalvar').innerText = "Salvar";
-            document.getElementById('formId').value = '';
-            document.getElementById('formMedidasLista').innerHTML = '';
-            document.getElementById('formHistoricoContainer').style.display = 'none';
-            document.getElementById('formHistoricoTexto').innerText = '';
-            fotosTemporariasEdicao = [];
-            renderizarPainelDeFotosExistentesParaEdicao();
+            document.getElementById('formFotosAtuaisContainer').style.display = 'none';
+            document.getElementById('fotosAtuaisGrid').innerHTML = '';
+            document.getElementById('labelFotos').innerText = "Adicionar Fotos (Máx 6) *";
+            document.getElementById('formFotos').required = true;
             switchTab('tab-peca');
-            carregarMedidasGlobaisDoBanco().then(() => {
+            carregarNomesMedidasGlobaisForm().then(() => {
                 adicionarLinhaMedida();
                 openModal('cadastroModal');
             });
         }
 
-        async function processarNovasFotos(input) {
-            const limiteMax = 6;
-            const files = input.files;
-            if (files.length === 0) return;
-
-            let totalAtual = fotosTemporariasEdicao.length;
-            if (totalAtual + files.length > limiteMax) {
-                alert(`⚠️ Limite Excedido!\nO sistema permite no máximo ${limiteMax} fotos por registro.`);
-                input.value = '';
-                return;
-            }
-
-            for (let i = 0; i < files.length; i++) {
-                try {
-                    const base64Otimizada = await otimizarEComprimirFotoCanvas(files[i]);
-                    fotosTemporariasEdicao.push(base64Otimizada);
-                } catch (err) {
-                    console.error("Erro ao comprimir imagem:", err);
-                    const reader = new FileReader();
-                    const fallbackStr = await new Promise((res) => {
-                        reader.onload = () => res(reader.result);
-                        reader.readAsDataURL(files[i]);
-                    });
-                    fotosTemporariasEdicao.push(fallbackStr);
-                }
-            }
-            input.value = '';
-            renderizarPainelDeFotosExistentesParaEdicao();
-        }
-
-        let dragStartIndex = -1;
-        let dragTimer;
-        let touchGhost = null;
-        let initialX = 0, initialY = 0;
-        let touchDraggedItemIndex = -1;
-
-	// Variável de controle para destruir instâncias antigas e evitar o travamento após o primeiro arrasto
-	let sortableInstance = null;
-
-	function renderizarPainelDeFotosExistentesParaEdicao() {
-		const container = document.getElementById('formFotosAtuaisContainer');
-		const grid = document.getElementById('fotosAtuaisGrid');
-
-		// Se já existir uma instância ativa do SortableJS rodando, nós a destruímos com segurança
-		if (sortableInstance) {
-			sortableInstance.destroy();
-			sortableInstance = null;
-		}
-
-		grid.innerHTML = '';
-
-		if (fotosTemporariasEdicao.length === 0) {
-			container.style.display = 'none';
-			return;
-		}
-
-		container.style.display = 'block';
-
-		fotosTemporariasEdicao.forEach((srcBase64, index) => {
-			const box = document.createElement('div');
-			box.className = 'foto-atual-item';
-			box.dataset.id = index;
-			
-			// Estilos para desativar a seleção fantasma e focar estritamente no arrasto físico do bloco
-			box.innerHTML = `
-				<img src="${srcBase64}" style="-webkit-user-drag: none; user-drag: none; pointer-events: none; user-select: none; -webkit-user-select: none;">
-				<button type="button" class="btn-remover-foto" onclick="removerFotoTemporariaDaEdicao(${index})">REMOVER</button>
-			`;
-			grid.appendChild(box);
-		});
-
-		// Cria a nova instância limpa do SortableJS habilitando múltiplos arrastos seguidos
-		if (window.Sortable) {
-			sortableInstance = Sortable.create(grid, {
-				animation: 150,
-				ghostClass: 'drag-over',
-				forceFallback: true,     // Resolve o bloqueio CSS do Android criando o clone virtual
-				fallbackTolerance: 3,    // Evita falsos disparos ao apenas clicar em REMOVER
-				onEnd: function () {
-					const novaOrdem = [];
-					grid.querySelectorAll('.foto-atual-item').forEach(box => {
-						const idxAntigo = parseInt(box.dataset.id, 10);
-						novaOrdem.push(fotosTemporariasEdicao[idxAntigo]);
-					});
-					fotosTemporariasEdicao = novaOrdem;
-					
-					// Recarrega o painel com a nova ordem sem travar as interações futuras
-					renderizarPainelDeFotosExistentesParaEdicao();
-				}
-			});
-		}
-	}
-
-	function removerFotoTemporariaDaEdicao(index) {
-		fotosTemporariasEdicao.splice(index, 1);
-		renderizarPainelDeFotosExistentesParaEdicao();
-	}
-
-        function removerFotoTemporariaDaEdicao(index) {
-            fotosTemporariasEdicao.splice(index, 1);
-            renderizarPainelDeFotosExistentesParaEdicao();
-        }
-
-        function moverFotoNaArray(fromIndex, toIndex) {
-            if (fromIndex === toIndex) return;
-            const item = fotosTemporariasEdicao.splice(fromIndex, 1)[0];
-            fotosTemporariasEdicao.splice(toIndex, 0, item);
-            renderizarPainelDeFotosExistentesParaEdicao();
-        }
-
-        function handleDragStart(e) {
-            dragStartIndex = parseInt(this.dataset.index);
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', dragStartIndex);
-            setTimeout(() => this.style.opacity = '0.5', 0);
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            const target = e.target.closest('.foto-atual-item');
-            if (target && target !== this) {
-                target.classList.add('drag-over');
-            }
-            return false;
-        }
-
-        function handleDragLeave(e) {
-            this.classList.remove('drag-over');
-        }
-
-        function handleDrop(e) {
-            e.stopPropagation();
-            const target = e.target.closest('.foto-atual-item');
-            if (target) {
-                const targetIndex = parseInt(target.dataset.index);
-                moverFotoNaArray(dragStartIndex, targetIndex);
-            }
-            return false;
-        }
-
-        function handleDragEnd(e) {
-            this.style.opacity = '1';
-            document.querySelectorAll('.foto-atual-item').forEach(el => el.classList.remove('drag-over'));
-        }
-
-        function handleTouchStart(e) {
-            if (e.target.tagName === 'BUTTON') return;
-            const item = this;
-            touchDraggedItemIndex = parseInt(item.dataset.index);
-            initialX = e.touches[0].clientX;
-            initialY = e.touches[0].clientY;
-
-            dragTimer = setTimeout(() => {
-                iniciarTouchDrag(item, e);
-            }, 250);
-        }
-
-        function iniciarTouchDrag(item, e) {
-            const rect = item.getBoundingClientRect();
-            touchGhost = item.cloneNode(true);
-            touchGhost.style.position = 'fixed';
-            touchGhost.style.zIndex = '1000';
-            touchGhost.style.opacity = '0.85';
-            touchGhost.style.pointerEvents = 'none';
-            touchGhost.style.width = rect.width + 'px';
-            touchGhost.style.height = rect.height + 'px';
-            touchGhost.style.left = rect.left + 'px';
-            touchGhost.style.top = rect.top + 'px';
-            touchGhost.style.boxShadow = '0 10px 20px rgba(0,0,0,0.4)';
-            document.body.appendChild(touchGhost);
-            item.style.opacity = '0.3';
-            if (navigator.vibrate) navigator.vibrate(50);
-        }
-
-        function handleTouchMove(e) {
-            if (!touchGhost) {
-                const dx = e.touches[0].clientX - initialX;
-                const dy = e.touches[0].clientY - initialY;
-                if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-                    clearTimeout(dragTimer);
-                }
-                return;
-            }
-            e.preventDefault();
-
-            const clientX = e.touches[0].clientX;
-            const clientY = e.touches[0].clientY;
-
-            touchGhost.style.left = (clientX - parseFloat(touchGhost.style.width)/2) + 'px';
-            touchGhost.style.top = (clientY - parseFloat(touchGhost.style.height)/2) + 'px';
-
-            document.querySelectorAll('.foto-atual-item').forEach(el => el.classList.remove('drag-over'));
-            const alvoAbaixo = document.elementFromPoint(clientX, clientY);
-            if (alvoAbaixo) {
-                const itemAlvo = alvoAbaixo.closest('.foto-atual-item');
-                if (itemAlvo && parseInt(itemAlvo.dataset.index) !== touchDraggedItemIndex) {
-                    itemAlvo.classList.add('drag-over');
-                }
-            }
-        }
-
-        function handleTouchEnd(e) {
-            clearTimeout(dragTimer);
-            if (!touchGhost) return;
-
-            const clientX = e.changedTouches[0].clientX;
-            const clientY = e.changedTouches[0].clientY;
-
-            document.querySelectorAll('.foto-atual-item').forEach(el => el.classList.remove('drag-over'));
-            const alvoAbaixo = document.elementFromPoint(clientX, clientY);
-            let indexDestino = -1;
-            if (alvoAbaixo) {
-                const itemAlvo = alvoAbaixo.closest('.foto-atual-item');
-                if (itemAlvo) {
-                    indexDestino = parseInt(itemAlvo.dataset.index);
-                }
-            }
-
-            touchGhost.remove();
-            touchGhost = null;
-
-            if (indexDestino !== -1 && indexDestino !== touchDraggedItemIndex) {
-                moverFotoNaArray(touchDraggedItemIndex, indexDestino);
-            } else {
-                renderizarPainelDeFotosExistentesParaEdicao();
-            }
-            touchDraggedItemIndex = -1;
-        }
-
-        function adicionarLinhaMedida(nomePreSelecionado = "", valorPreSelecionado = "", unidadePreSelecionada = "mm") {
-            const container = document.getElementById('formMedidasLista');
-            const row = document.createElement('div');
-            row.className = 'measurement-row-form';
-
-            const selectNome = document.createElement('select');
-            selectNome.required = true;
-
-            const inputValor = document.createElement('input');
-            inputValor.type = 'text';
-            inputValor.inputMode = 'decimal';
-            inputValor.placeholder = 'Valor';
-            inputValor.required = true;
-            inputValor.value = valorPreSelecionado;
-
-            const selectUnidade = document.createElement('select');
-            selectUnidade.innerHTML = `<option value="mm">mm</option><option value="pol">pol</option><option value="Graus">°</option><option value="Unid">un</option>`;
-            selectUnidade.value = unidadePreSelecionada;
-
-            const btnDelete = document.createElement('button');
-            btnDelete.type = 'button';
-            btnDelete.style.cssText = "background:none; border:none; color:var(--danger); font-size:1.2rem; cursor:pointer; padding: 0 0.4rem;";
-            btnDelete.innerText = '✕';
-            btnDelete.onclick = () => row.remove();
-
-            atualizarSelectDeOpcoesDeMedidas(selectNome, nomePreSelecionado);
-
-            row.appendChild(selectNome);
-            row.appendChild(inputValor);
-            row.appendChild(selectUnidade);
-            row.appendChild(btnDelete);
-            container.appendChild(row);
-
-            configurarMascaraDecimalEFlutuanteParaCamposDoFormulario(inputValor);
-        }
-
-        function atualizarSelectDeOpcoesDeMedidas(selectElement, valorSelecionado = "") {
-            selectElement.innerHTML = '';
-            const optPlaceholder = document.createElement('option');
-            optPlaceholder.value = "";
-            optPlaceholder.text = "Selecione...";
-            optPlaceholder.disabled = true;
-            optPlaceholder.selected = !valorSelecionado;
-            selectElement.appendChild(optPlaceholder);
-
-            nomesMedidasExistentes.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m;
-                opt.text = m;
-                if (m === valorSelecionado) opt.selected = true;
-                selectElement.appendChild(opt);
-            });
-
-            const optCriarNovo = document.createElement('option');
-            optCriarNovo.value = "__NOVO__";
-            optCriarNovo.text = "⨁ Adicionar Medida";
-            optCriarNovo.style.color = "var(--primary)";
-            optCriarNovo.style.fontWeight = "bold";
-            selectElement.appendChild(optCriarNovo);
-
-            const optDeletarOpcao = document.createElement('option');
-            optDeletarOpcao.value = "__DELETAR__";
-            optDeletarOpcao.text = "⨂ Remover Medida";
-            optDeletarOpcao.style.color = "var(--danger)";
-            selectElement.appendChild(optDeletarOpcao);
-
-            selectElement.onchange = () => {
-                if (selectElement.value === "__NOVO__") {
-                    selectDisparadorOriginal = selectElement;
-                    const novoNome = prompt("Digite o nome da nova medida global técnica (Ex: Diâmetro Interno):");
-                    if (novoNome && novoNome.trim() !== "") {
-                        salvarNovaOpcaoMedidaGlobalNoBanco(novoNome.trim());
-                    } else {
-                        selectElement.value = valorSelecionado;
-                    }
-                } else if (selectElement.value === "__DELETAR__") {
-                    selectDisparadorOriginal = selectElement;
-                    abrirModalDeletarOpcao(valorSelecionado);
-                }
-            };
-        }
-
-        function abrirModalDeletarOpcao(valorOriginal) {
-            const selectAlvo = document.getElementById('deletarSelectAlvo');
-            selectAlvo.innerHTML = '';
-            
-            nomesMedidasExistentes.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m;
-                opt.text = m;
-                selectAlvo.appendChild(opt);
-            });
-            openModal('deletarOpcaoModal');
-
-            window.fecharModalDeletarOpcao = () => {
-                closeModal('deletarOpcaoModal');
-                if (selectDisparadorOriginal) selectDisparadorOriginal.value = valorOriginal;
-            };
-        }
-
-        function confirmarDeletarMedidaGlobal() {
-            const alvo = document.getElementById('deletarSelectAlvo').value;
-            if (!alvo) return;
-
-            const tx = db.transaction("nomesMedidas", "readwrite");
-            const store = tx.objectStore("nomesMedidas");
-            store.delete(alvo);
-
-            tx.oncomplete = () => {
-                carregarMedidasGlobaisDoBanco().then(() => {
-                    const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
-                    todosSelects.forEach(sel => {
-                        const valSalvo = sel.value;
-                        if (valSalvo === alvo) {
-                            atualizarSelectDeOpcoesDeMedidas(sel, "");
-                        } else {
-                            atualizarSelectDeOpcoesDeMedidas(sel, valSalvo);
-                        }
-                    });
-                    closeModal('deletarOpcaoModal');
-                });
-            };
-        }
-
-        function salvarNovaOpcaoMedidaGlobalNoBanco(nomeMedida) {
-            const tx = db.transaction("nomesMedidas", "readwrite");
-            const store = tx.objectStore("nomesMedidas");
-            store.put({ nome: nomeMedida });
-
-            tx.oncomplete = () => {
-                carregarMedidasGlobaisDoBanco().then(() => {
-                    const todosSelects = document.querySelectorAll('#formMedidasLista select:nth-child(1)');
-                    todosSelects.forEach(sel => {
-                        const valorSalvoNoSelect = sel.value;
-                        if (sel === selectDisparadorOriginal) {
-                            atualizarSelectDeOpcoesDeMedidas(sel, nomeMedida);
-                        } else {
-                            atualizarSelectDeOpcoesDeMedidas(sel, valorSalvoNoSelect);
-                        }
-                    });
-                });
-            };
-        }
-
-        function carregarMedidasGlobaisDoBanco() {
+        async function carregarNomesMedidasGlobaisForm() {
             return new Promise((resolve) => {
+                if (!db) return resolve();
                 const tx = db.transaction("nomesMedidas", "readonly");
                 const store = tx.objectStore("nomesMedidas");
                 const req = store.getAll();
                 req.onsuccess = () => {
                     nomesMedidasExistentes = req.result.map(r => r.nome).sort((a,b) => a.localeCompare(b));
-                    resolve(true);
+                    resolve();
                 };
+                req.onerror = () => resolve();
             });
         }
 
-        function configurarMascaraDecimalEFlutuanteParaCamposDoFormulario(inputField) {
-            inputField.addEventListener('input', (e) => {
-                let val = e.target.value;
-                val = val.replace(/,/g, '.');
-                val = val.replace(/[^0-9.]/g, '');
-                const parts = val.split('.');
-                if (parts.length > 2) {
-                    val = parts[0] + '.' + parts.slice(1).join('');
+        function adicionarLinhaMedida(dados = null) {
+            const lista = document.getElementById('formMedidasLista');
+            const row = document.createElement('div');
+            row.className = 'measurement-row-form';
+
+            const selectNome = document.createElement('select');
+            selectNome.required = true;
+            selectNome.innerHTML = `<option value="" disabled selected>Escolha...</option>`;
+            nomesMedidasExistentes.forEach(n => {
+                selectNome.innerHTML += `<option value="${n}">${n}</option>`;
+            });
+            selectNome.innerHTML += `<option value="__NOVA__" style="font-weight:bold; color:var(--primary);">＋ Nova Opção...</option>`;
+            selectNome.onchange = (e) => lidarMudancaSelectMedida(e.target);
+
+            const inputValor = document.createElement('input');
+            inputValor.type = 'text';
+            inputValor.placeholder = 'Valor';
+            inputValor.required = true;
+
+            const inputUnidade = document.createElement('input');
+            inputUnidade.type = 'text';
+            inputUnidade.placeholder = 'Unid';
+            inputUnidade.required = true;
+
+            const btnDel = document.createElement('button');
+            btnDel.type = 'button';
+            btnDel.style = 'background:none; border:none; color:var(--danger); font-size:1.2rem; cursor:pointer; padding:0 0.2rem;';
+            btnDel.innerText = '✕';
+            btnDel.onclick = () => row.remove();
+
+            row.appendChild(selectNome);
+            row.appendChild(inputValor);
+            row.appendChild(inputUnidade);
+            row.appendChild(btnDel);
+            lista.appendChild(row);
+
+            if (dados) {
+                selectNome.value = dados.nome;
+                inputValor.value = dados.valor;
+                inputUnidade.value = dados.unidade;
+            }
+        }
+
+        function lidarMudancaSelectMedida(selectEl) {
+            if (selectEl.value === "__NOVA__") {
+                const novoNome = prompt("Digite o nome da nova opção de medida (ex: Diâmetro Interno, Espessura):");
+                if (!novoNome || novoNome.trim() === "") {
+                    selectEl.value = "";
+                    return;
                 }
-                e.target.value = val;
+                const nomeFormatado = novoNome.trim();
+                if (nomesMedidasExistentes.includes(nomeFormatado)) {
+                    alert("Esta opção já existe na lista.");
+                    selectEl.value = nomeFormatado;
+                    return;
+                }
+                const tx = db.transaction("nomesMedidas", "readwrite");
+                tx.objectStore("nomesMedidas").put({ nome: nomeFormatado });
+                tx.oncomplete = () => {
+                    nomesMedidasExistentes.push(nomeFormatado);
+                    nomesMedidasExistentes.sort((a,b) => a.localeCompare(b));
+                    atualizarTodosSelectsMedidaForm(nomeFormatado, selectEl);
+                };
+            }
+        }
+
+        function atualizarTodosSelectsMedidaForm(novoItemParaSelecionar, selectDisparador) {
+            const todosSelects = document.querySelectorAll('#formMedidasLista select');
+            todosSelects.forEach(sel => {
+                const valorSalvo = sel.value;
+                sel.innerHTML = `<option value="" disabled>Escolha...</option>`;
+                nomesMedidasExistentes.forEach(n => {
+                    sel.innerHTML += `<option value="${n}">${n}</option>`;
+                });
+                sel.innerHTML += `<option value="__NOVA__" style="font-weight:bold; color:var(--primary);">＋ Nova Opção...</option>`;
+                if (sel === selectDisparador) {
+                    sel.value = novoItemParaSelecionar;
+                } else if (valorSalvo && nomesMedidasExistentes.includes(valorSalvo)) {
+                    sel.value = valorSalvo;
+                } else {
+                    sel.value = "";
+                }
             });
         }
 
-        function carregarPecas() {
-            const tx = db.transaction("pecas", "readonly");
-            const store = tx.objectStore("pecas");
-            const request = store.getAll();
-            request.onsuccess = () => {
-                pecas = request.result;
-                if (currentIndex >= pecas.length) {
-                    currentIndex = Math.max(0, pecas.length - 1);
-                }
-                exibirPecaAtual();
+        function abrirModalDeletarOpcaoGlobal(selectElement) {
+            selectDisparadorOriginal = selectElement;
+            const alvoSelect = document.getElementById('deletarSelectAlvo');
+            alvoSelect.innerHTML = '';
+            nomesMedidasExistentes.forEach(n => {
+                alvoSelect.innerHTML += `<option value="${n}">${n}</option>`;
+            });
+            openModal('deletarOpcaoModal');
+        }
+
+        function fecharModalDeletarOpcao() {
+            closeModal('deletarOpcaoModal');
+            if (selectDisparadorOriginal) selectDisparadorOriginal.value = "";
+            selectDisparadorOriginal = null;
+        }
+
+        function confirmarDeletarMedidaGlobal() {
+            const itemParaExcluir = document.getElementById('deletarSelectAlvo').value;
+            if (!itemParaExcluir) return;
+            const tx = db.transaction("nomesMedidas", "readwrite");
+            tx.objectStore("nomesMedidas").delete(itemParaExcluir);
+            tx.oncomplete = () => {
+                nomesMedidasExistentes = nomesMedidasExistentes.filter(i => i !== itemParaExcluir);
+                atualizarTodosSelectsMedidaForm("", null);
+                closeModal('deletarOpcaoModal');
+                selectDisparadorOriginal = null;
             };
         }
 
-        function otimizarEComprimirFotoCanvas(file) {
-            return new Promise((resolve, reject) => {
+        function processarNovasFotos(input) {
+            const files = Array.from(input.files);
+            const totalExistentes = fotosTemporariasEdicao.length;
+            if (totalExistentes + files.length > 6) {
+                alert(`Limite excedido. Você pode adicionar mais ${6 - totalExistentes} fotos.`);
+                input.value = '';
+                return;
+            }
+            files.forEach(file => {
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-                        const max_size = 1024;
-
-                        if (width > height) {
-                            if (width > max_size) {
-                                height *= max_size / width;
-                                width = max_size;
-                            }
-                        } else {
-                            if (height > max_size) {
-                                width *= max_size / height;
-                                height = max_size;
-                            }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        const base64Str = canvas.toDataURL('image/jpeg', 0.7);
-                        resolve(base64Str);
-                    };
-                    img.src = event.target.result;
+                reader.onload = (e) => {
+                    fotosTemporariasEdicao.push(e.target.result);
+                    renderizarGradeFotosEdicao();
                 };
-                reader.onerror = (e) => reject(e);
                 reader.readAsDataURL(file);
             });
+            input.value = '';
         }
 
-        function salvarPeca(event) {
-            event.preventDefault();
-
-            const idVal = document.getElementById('formId').value;
-            const nome = document.getElementById('formNome').value.trim();
-            const codigo = document.getElementById('formCodigo').value.trim();
-            const observacao = document.getElementById('formObservacao').value.trim();
-            const responsavel = document.getElementById('formResponsavel').value.trim();
-
-            const linhas = document.querySelectorAll('.measurement-row-form');
-            const medidas = [];
-            linhas.forEach(row => {
-                const selNome = row.querySelector('select:nth-child(1)');
-                const inpValor = row.querySelector('input');
-                const selUnid = row.querySelector('select:nth-child(3)');
-                if (selNome.value && inpValor.value) {
-                    medidas.push({
-                        nome: selNome.value,
-                        valor: inpValor.value.trim(),
-                        unidade: selUnid.value
+        function renderizarGradeFotosEdicao() {
+            const container = document.getElementById('formFotosAtuaisContainer');
+            const grid = document.getElementById('fotosAtuaisGrid');
+            grid.innerHTML = '';
+            if (fotosTemporariasEdicao.length > 0) {
+                container.style.display = 'block';
+                document.getElementById('labelFotos').innerText = "Adicionar Mais Fotos (Máx 6)";
+                document.getElementById('formFotos').required = false;
+                fotosTemporariasEdicao.forEach((foto, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'foto-atual-item';
+                    item.setAttribute('data-idx', index);
+                    item.innerHTML = `<img src="${foto}"><button type="button" class="btn-remover-foto" onclick="removerFotoTemporaria(${index})">REMOVER</button>`;
+                    grid.appendChild(item);
+                });
+                if (window.Sortable && fotosTemporariasEdicao.length > 1) {
+                    Sortable.create(grid, {
+                        animation: 150,
+                        onEnd: () => {
+                            const novosItens = Array.from(grid.querySelectorAll('.foto-atual-item'));
+                            const novaOrdem = novosItens.map(el => fotosTemporariasEdicao[parseInt(el.getAttribute('data-idx'))]);
+                            fotosTemporariasEdicao = novaOrdem;
+                            renderizarGradeFotosEdicao();
+                        }
                     });
                 }
-            });
-
-            const fotosFinais = [...fotosTemporariasEdicao];
-            const agoraISO = new Date().toISOString();
-
-            const registroPeca = {
-                nome,
-                codigo,
-                fotos: fotosFinais,
-                medidas,
-                observacao,
-                responsavel
-            };
-
-            if (idVal !== "") {
-                registroPeca.id = Number(idVal);
-                const pecaAntiga = pecas.find(p => p.id === registroPeca.id);
-                registroPeca.dataCadastro = pecaAntiga ? pecaAntiga.dataCadastro : agoraISO;
-                registroPeca.dataAtualizacao = agoraISO;
             } else {
-                registroPeca.dataCadastro = agoraISO;
-                registroPeca.dataAtualizacao = null;
+                container.style.display = 'none';
+                document.getElementById('labelFotos').innerText = "Adicionar Fotos (Máx 6) *";
+                document.getElementById('formFotos').required = true;
             }
+        }
 
-            const tx = db.transaction("pecas", "readwrite");
-            const store = tx.objectStore("pecas");
-            let requestAction;
-
-            if (idVal !== "") {
-                requestAction = store.put(registroPeca);
-            } else {
-                requestAction = store.add(registroPeca);
-            }
-
-            requestAction.onsuccess = () => {
-                tx.oncomplete = () => {
-                    closeModal('cadastroModal');
-                    if (idVal === "") {
-                        currentIndex = pecas.length;
-                    }
-                    currentPhotoIndex = 0;
-                    carregarPecas();
-                };
-            };
-
-            requestAction.onerror = (err) => {
-                err.preventDefault();
-                alert(`⚠️ Conflito de Código!\nO código "${codigo}" já pertence a outra peça cadastrada.`);
-            };
+        function removerFotoTemporaria(index) {
+            fotosTemporariasEdicao.splice(index, 1);
+            renderizarGradeFotosEdicao();
         }
 
         function prepararEdicao() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
-
-            document.getElementById('modalTitle').innerText = "Editar Peça Cadastrada";
+            document.getElementById('modalTitle').innerText = "Editar Peça";
             document.getElementById('btnSalvar').innerText = "Atualizar Registro";
             document.getElementById('formId').value = peca.id;
             document.getElementById('formNome').value = peca.nome;
@@ -1866,254 +1673,440 @@
             document.getElementById('formResponsavel').value = peca.responsavel || '';
 
             const histText = obterTextoHistorico(peca);
-            const containerHist = document.getElementById('formHistoricoContainer');
-            const boxHist = document.getElementById('formHistoricoTexto');
             if (histText) {
-                containerHist.style.display = 'flex';
-                boxHist.innerText = histText;
+                document.getElementById('formHistoricoContainer').style.display = 'block';
+                document.getElementById('formHistoricoTexto').innerText = histText;
             } else {
-                containerHist.style.display = 'none';
-                boxHist.innerText = '';
+                document.getElementById('formHistoricoContainer').style.display = 'none';
             }
 
-            fotosTemporariasEdicao = peca.fotos ? [...peca.fotos] : [];
-            renderizarPainelDeFotosExistentesParaEdicao();
-
+            fotosTemporariasEdicao = [...peca.fotos];
+            renderizarGradeFotosEdicao();
             document.getElementById('formMedidasLista').innerHTML = '';
-            switchTab('tab-peca');
 
-            carregarMedidasGlobaisDoBanco().then(() => {
-                if (peca.medidas && peca.medidas.length > 0) {
-                    peca.medidas.forEach(m => adicionarLinhaMedida(m.nome, m.valor, m.unidade));
-                } else {
-                    adicionarLinhaMedida();
-                }
+            carregarNomesMedidasGlobaisForm().then(() => {
+                peca.medidas.forEach(m => adicionarLinhaMedida(m));
+                if (peca.medidas.length === 0) adicionarLinhaMedida();
+                switchTab('tab-peca');
                 openModal('cadastroModal');
             });
+        }
+
+        function salvarPeca(e) {
+            e.preventDefault();
+            const idVal = document.getElementById('formId').value;
+            const nomeVal = document.getElementById('formNome').value.trim();
+            const codigoVal = document.getElementById('formCodigo').value.trim();
+            const obsVal = document.getElementById('formObservacao').value.trim();
+            const respVal = document.getElementById('formResponsavel').value.trim();
+
+            if (fotosTemporariasEdicao.length === 0) {
+                alert("É obrigatório anexar pelo menos 1 foto da peça.");
+                switchTab('tab-imagens');
+                return;
+            }
+
+            const linhasMedidas = document.querySelectorAll('.measurement-row-form');
+            const medidasArr = [];
+            let flagMedidaDuplicada = false;
+
+            linhasMedidas.forEach(row => {
+                const sel = row.querySelector('select');
+                const inpV = row.querySelectorAll('input')[0];
+                const inpU = row.querySelectorAll('input')[1];
+                if (sel && sel.value && sel.value !== "__NOVA__") {
+                    if (medidasArr.some(m => m.nome === sel.value)) {
+                        flagMedidaDuplicada = true;
+                    }
+                    medidasArr.push({
+                        nome: sel.value,
+                        valor: inpV.value.trim(),
+                        unidade: inpU.value.trim()
+                    });
+                }
+            });
+
+            if (flagMedidaDuplicada) {
+                alert("Erro: Não é permitido adicionar medidas com o mesmo nome na mesma peça.");
+                switchTab('tab-medidas');
+                return;
+            }
+
+            const dadosPeca = {
+                nome: nomeVal,
+                codigo: codigoVal,
+                fotos: fotosTemporariasEdicao,
+                medidas: medidasArr,
+                observacao: obsVal,
+                responsavel: respVal
+            };
+
+            const tx = db.transaction("pecas", "readwrite");
+            const store = tx.objectStore("pecas");
+
+            if (idVal) {
+                dadosPeca.id = parseInt(idVal);
+                const reqPecaAntiga = store.get(dadosPeca.id);
+                reqPecaAntiga.onsuccess = () => {
+                    const antiga = reqPecaAntiga.result;
+                    dadosPeca.dataCadastro = antiga.dataCadastro;
+                    dadosPeca.dataAtualizacao = new Date().toISOString();
+                    efetuarPutStore(store, dadosPeca, true);
+                };
+            } else {
+                dadosPeca.dataCadastro = new Date().toISOString();
+                dadosPeca.dataAtualizacao = null;
+                efetuarPutStore(store, dadosPeca, false);
+            }
+        }
+
+        function efetuarPutStore(store, dadosPeca, isEdicao) {
+            const request = store.put(dadosPeca);
+            request.onsuccess = () => {
+                closeModal('cadastroModal');
+                const codSalvo = dadosPeca.codigo;
+                carregarPecas().then(() => {
+                    if (isEdicao) {
+                        const novoIdx = pecas.findIndex(p => p.id === dadosPeca.id);
+                        if (novoIdx !== -1) currentIndex = novoIdx;
+                    } else {
+                        const novoIdx = pecas.findIndex(p => p.codigo === codSalvo);
+                        if (novoIdx !== -1) currentIndex = novoIdx;
+                        else currentIndex = pecas.length - 1;
+                    }
+                    currentPhotoIndex = 0;
+                    exibirPecaAtual();
+                });
+            };
+            request.onerror = (e) => {
+                console.error(e);
+                alert("Erro operacional: O código informado já pertence a outra peça cadastrada.");
+            };
         }
 
         function deletarPecaAtual() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
-            const confirmacao = confirm(`⚠️ Excluir Registro?\nDeseja apagar permanentemente a peça "${peca.nome}" (Código: ${peca.codigo}) do dispositivo?`);
-            if (!confirmacao) return;
-
+            const conf = confirm(`Deseja realmente excluir permanentemente o registro da peça:\n"${peca.nome}" (${peca.codigo})?`);
+            if (!conf) return;
             const tx = db.transaction("pecas", "readwrite");
-            const store = tx.objectStore("pecas");
-            store.delete(peca.id);
-
+            tx.objectStore("pecas").delete(peca.id);
             tx.oncomplete = () => {
-                if (currentIndex > 0) currentIndex--;
-                currentPhotoIndex = 0;
-                carregarPecas();
+                carregarPecas().then(() => {
+                    if (currentIndex >= pecas.length && pecas.length > 0) {
+                        currentIndex = pecas.length - 1;
+                    } else if (pecas.length === 0) {
+                        currentIndex = 0;
+                    }
+                    currentPhotoIndex = 0;
+                    exibirPecaAtual();
+                });
             };
+        }
+
+        async function carregarPecas() {
+            return new Promise((resolve) => {
+                if (!db) return resolve();
+                const tx = db.transaction("pecas", "readonly");
+                const store = tx.objectStore("pecas");
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    pecas = request.result.sort((a, b) => a.nome.localeCompare(b.nome));
+                    exibirPecaAtual();
+                    resolve();
+                };
+                request.onerror = () => resolve();
+            });
         }
 
         function configurarGestosTouchSlider() {
             const viewer = document.getElementById('imageViewer');
-            let tStartX = 0;
-            let tStartY = 0;
-            let tEndX = 0;
-            let tEndY = 0;
+            let startX = 0;
+            let startY = 0;
+            let moveX = 0;
+            let moveY = 0;
+            let isDragging = false;
 
             viewer.ontouchstart = (e) => {
-                if (e.target.closest('.img-arrow-btn') || e.target.closest('.piece-navigator-bar')) return;
-                tStartX = e.touches[0].screenX;
-                tStartY = e.touches[0].screenY;
+                if (estaAnimandoPeca || (pecas[currentIndex]?.fotos?.length <= 1)) {
+                    isDragging = false;
+                    return;
+                }
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                isDragging = true;
             };
 
             viewer.ontouchmove = (e) => {
-                if (e.target.closest('.img-arrow-btn') || e.target.closest('.piece-navigator-bar')) return;
-                tEndX = e.touches[0].screenX;
-                tEndY = e.touches[0].screenY;
+                if (!isDragging) return;
+                moveX = e.touches[0].clientX - startX;
+                moveY = e.touches[0].clientY - startY;
             };
 
-            viewer.ontouchend = (e) => {
-                if (e.target.closest('.img-arrow-btn') || e.target.closest('.piece-navigator-bar')) return;
-                const diffX = tEndX - tStartX;
-                const diffY = tEndY - tStartY;
-
-                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 45) {
-                    if (diffX > 0) mudarFoto(-1);
+            viewer.ontouchend = () => {
+                if (!isDragging) return;
+                isDragging = false;
+                if (Math.abs(moveX) > Math.abs(moveY) && Math.abs(moveX) > 60) {
+                    if (moveX > 0) mudarFoto(-1);
                     else mudarFoto(1);
-                } else if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 55) {
-                    if (diffY > 0) mudarPeca(-1);
-                    else mudarPeca(1);
                 }
-                tStartX = 0; tStartY = 0; tEndX = 0; tEndY = 0;
+                moveX = 0;
+                moveY = 0;
             };
         }
 
-        function exportarCatalogoPDF() {
-            if (pecas.length === 0) {
-                alert("Nenhuma peça cadastrada para gerar o catálogo.");
-                return;
-            }
-
-            const win = window.open("", "_blank");
-            let htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Catálogo Técnico - Impressão</title>
-                <style>
-                    body { font-family: system-ui, sans-serif; color: #0f172a; padding: 20px; background:#fff; }
-                    .header-print { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 30px; }
-                    .header-print h1 { margin: 0; font-size: 24px; color: #2563eb; }
-                    .header-print p { margin: 5px 0 0 0; font-size: 13px; color: #64748b; }
-                    .peca-block { display: flex; gap: 20px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; page-break-inside: avoid; background:#fff; }
-                    .peca-img-wrapper { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 110px; flex-shrink: 0; }
-                    .peca-img-box { width: 110px; height: 110px; border: 1px solid #cbd5e1; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: #f8fafc; flex-shrink: 0; }
-                    .peca-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-                    .peca-code-below { font-size: 13px; font-weight: bold; color: #0f172a; text-align: center; word-break: break-all; width: 100%; }
-                    .peca-details { flex: 1; }
-                    .peca-text-format { white-space: pre-wrap; font-family: inherit; font-size: 13px; line-height: 1.4; margin: 0; }
-                    .no-img-text { color: #94a3b8; font-size: 11px; text-align: center; }
-                    @media print { body { padding: 0; } @page { margin: 1cm; } }
-                </style>
-            </head>
-            <body>
-                <div class="header-print">
-                    <h1>Catálogo Técnico Completo</h1>
-                    <p>Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
-                </div>
-            `;
-
-            pecas.forEach(peca => {
-                htmlContent += `
-                <div class="peca-block">
-                    <div class="peca-img-wrapper">
-                        <div class="peca-img-box">
-                            ${peca.fotos && peca.fotos.length > 0 ? `<img src="${peca.fotos[0]}">` : `<span class="no-img-text">Sem foto</span>`}
-                        </div>
-                        <div class="peca-code-below">${peca.codigo}</div>
-                    </div>
-                    <div class="peca-details">
-                        <pre class="peca-text-format"><strong>Peça:</strong> ${peca.nome}`;
-                if (peca.medidas && peca.medidas.length > 0) {
-                    htmlContent += `\n\n<strong>Medidas:</strong>`;
-                    peca.medidas.forEach(m => {
-                        htmlContent += `\n • ${m.nome}: ${m.valor} ${m.unidade}`;
-                    });
-                }
-                if (peca.observacao && peca.observacao.trim() !== "") {
-                    htmlContent += `\n\n<strong>Observações:</strong> ${peca.observacao}`;
-                }
-                const hist = obterTextoHistorico(peca);
-
-                htmlContent += `</pre>
-                    </div>
-                </div>`;
-            });
-
-            htmlContent += `
-                <script>
-                    window.onload = function() {
-                        setTimeout(() => { window.print(); }, 500);
-                    }
-                <\/script>
-            </body>
-            </html>
-            `;
-
-            win.document.write(htmlContent);
-            win.document.close();
+        function atualizarMetadadosBackupLabels() {
+            const b = localStorage.getItem("backup_last_export");
+            const r = localStorage.getItem("backup_last_import");
+            document.getElementById("lblUltimoBackup").innerText = b ? formatarDataHora(b) : "--";
+            document.getElementById("lblUltimoRestauro").innerText = r ? formatarDataHora(r) : "--";
         }
 
         function exportarDadosSistema() {
             if (pecas.length === 0) {
-                alert("Não há dados cadastrados para exportar backup.");
+                alert("Não existem registros cadastrados para exportação.");
                 return;
             }
-            const dadosBackup = {
-                versao: "1.0",
-                exportadoEm: new Date().toISOString(),
-                pecas: pecas,
-                configuracoesMedidas: nomesMedidasExistentes.map(n => ({ nome: n }))
+            const tx = db.transaction("nomesMedidas", "readonly");
+            tx.objectStore("nomesMedidas").getAll().onsuccess = (e) => {
+                const listaGlobalMedidas = e.target.result;
+                const pacoteBackup = {
+                    tipo: "BACKUP_CATALOGO_TECNICO_PWA",
+                    versao: 1,
+                    dataGeracao: new Date().toISOString(),
+                    pecas: pecas,
+                    nomesMedidas: listaGlobalMedidas
+                };
+                const jsonString = JSON.stringify(pacoteBackup);
+                const blob = new Blob([jsonString], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const dataHoje = new Date().toISOString().split('T')[0];
+                a.href = url;
+                a.download = `backup_catalogo_tecnico_${dataHoje}.json`;
+                a.click();
+                localStorage.setItem("backup_last_export", new Date().toISOString());
+                atualizarMetadadosBackupLabels();
+                setTimeout(() => URL.revokeObjectURL(url), 100);
             };
-
-            const strJson = JSON.stringify(dadosBackup, null, 2);
-            const blob = new Blob([strJson], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-
-            const dataFormatada = new Date().toISOString().slice(0,10);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `backup_catalogo_tecnico_${dataFormatada}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            localStorage.setItem("sistema_ultimo_backup", new Date().toISOString());
-            atualizarMetadadosBackupLabels();
         }
 
-        async function importarDadosSistema(input) {
+        // Fluxo de Importação com a Nova Segunda Camada (Total vs Incremental)
+        function importarDadosSistema(input) {
             const file = input.files[0];
             if (!file) return;
-
             const reader = new FileReader();
-            reader.onload = async function(e) {
+            reader.onload = async (e) => {
                 try {
-                    const dadosImportados = JSON.parse(e.target.result);
-                    if (!dadosImportados.pecas) {
-                        throw new Error("Arquivo inválido");
-                    }
-
-                    const confirmacao = confirm(`📥 Confirmar Restauração:\nEncontramos ${dadosImportados.pecas.length} peças no arquivo de backup.\nDeseja sobrescrever e substituir o banco de dados atual por este?`);
-                    if (!confirmacao) {
+                    const dados = JSON.parse(e.target.result);
+                    if (dados.tipo !== "BACKUP_CATALOGO_TECNICO_PWA") {
+                        alert("Ficheiro inválido. O arquivo de backup não é compatível com este sistema.");
                         input.value = '';
                         return;
                     }
-
-                    await executarLimpezaBancoDados();
-
-                    const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
-                    const storePecas = tx.objectStore("pecas");
-                    const storeMedidas = tx.objectStore("nomesMedidas");
-
-                    if (dadosImportados.pecas && dadosImportados.pecas.length > 0) {
-                        dadosImportados.pecas.forEach(p => {
-                            delete p.id;
-                            storePecas.add(p);
-                        });
-                    }
-
-                    if (dadosImportados.configuracoesMedidas && dadosImportados.configuracoesMedidas.length > 0) {
-                        dadosImportados.configuracoesMedidas.forEach(m => {
-                            storeMedidas.put(m);
-                        });
-                    }
-
-                    tx.oncomplete = () => {
-                        localStorage.setItem("sistema_ultima_restauracao", new Date().toISOString());
-                        alert("🎉 Dados restaurados com absoluto sucesso!");
-                        currentIndex = 0;
-                        currentPhotoIndex = 0;
-                        carregarPecas();
-                        closeModal('backupModal');
-                    };
-
+                    
+                    // Armazena temporariamente os dados e abre o modal de opções
+                    backupDataTemporario = dados;
+                    closeModal('backupModal');
+                    openModal('importOpcaoModal');
                 } catch (err) {
                     console.error(err);
-                    alert("❌ Falha crítica ao importar: certifique-se de escolher um arquivo válido de backup deste catálogo.");
-                } finally {
-                    input.value = '';
+                    alert("Erro crítico ao tentar ler o arquivo JSON.");
                 }
+                input.value = '';
             };
             reader.readAsText(file);
         }
 
-        function atualizarMetadadosBackupLabels() {
-            const b = localStorage.getItem("sistema_ultimo_backup");
-            const r = localStorage.getItem("sistema_ultima_restauracao");
+        // Acção ao selecionar o método na segunda camada
+        async function selecionarMetodoImportacao(metodo) {
+            closeModal('importOpcaoModal');
+            if (!backupDataTemporario) return;
 
-            document.getElementById('lblUltimoBackup').innerText = b ? formatarDataHora(b) : "--";
-            document.getElementById('lblUltimoRestauro').innerText = r ? formatarDataHora(r) : "--";
+            if (metodo === 'total') {
+                const conf = confirm("⚠️ ATENÇÃO: Esta ação irá APAGAR todas as peças atuais do dispositivo para restaurar o arquivo. Deseja continuar?");
+                if (!conf) return;
+                
+                try {
+                    await restaurarBackupCompletoTotal(backupDataTemporario);
+                    alert("Restauração completa executada com sucesso!");
+                    concluirFluxoImportacaoGeral();
+                } catch (err) {
+                    console.error(err);
+                    alert("Erro durante a restauração total.");
+                }
+            } else if (metodo === 'incremental') {
+                prepararTelaImportacaoIncremental();
+            }
         }
 
-        function executarLimpezaBancoDados() {
+        // Função interna para a Restauração Total clássica
+        async function restaurarBackupCompletoTotal(dados) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
+                const storePecas = tx.objectStore("pecas");
+                const storeMedidas = tx.objectStore("nomesMedidas");
+
+                storePecas.clear();
+                storeMedidas.clear();
+
+                if (dados.nomesMedidas && dados.nomesMedidas.length > 0) {
+                    dados.nomesMedidas.forEach(m => storeMedidas.put(m));
+                }
+                if (dados.pecas && dados.pecas.length > 0) {
+                    dados.pecas.forEach(p => {
+                        // Limpa chaves autogeradas para evitar conflitos de ID anteriores
+                        if(p.id) delete p.id;
+                        storePecas.put(p);
+                    });
+                }
+
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e);
+            });
+        }
+
+        // Prepara e abre a interface da importação incremental
+        function prepararTelaImportacaoIncremental() {
+            const listaContainer = document.getElementById('importIncrementalLista');
+            listaContainer.innerHTML = '';
+            itensIncrementalMapeados = [];
+
+            // Clona e ordena o array do backup em ordem alfabética de nome
+            const pecasBackupOrdenadas = [...backupDataTemporario.pecas].sort((a, b) => a.nome.localeCompare(b.nome));
+
+            pecasBackupOrdenadas.forEach((pecaBkp) => {
+                // Procura se já existe o código no banco local atual
+                const pecaExistente = pecas.find(p => p.codigo === pecaBkp.codigo);
+                const isUpdate = !!pecaExistente;
+
+                itensIncrementalMapeados.push({
+                    checked: true, // Pré-marcado por padrão
+                    status: isUpdate ? 'atualizar' : 'novo',
+                    pecaLocalId: isUpdate ? pecaExistente.id : null,
+                    dados: pecaBkp
+                });
+            });
+
+            // Renderiza os itens na tela
+            itensIncrementalMapeados.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'import-item';
+
+                // Imagem
+                let fotoHtml = `<div class="import-item-thumb-empty">Sem<br>Foto</div>`;
+                if (item.dados.fotos && item.dados.fotos.length > 0) {
+                    fotoHtml = `<img src="${item.dados.fotos[0]}" class="import-item-thumb">`;
+                }
+
+                // Badge de Status
+                const badgeClass = item.status === 'novo' ? 'import-badge-new' : 'import-badge-update';
+                const badgeTexto = item.status === 'novo' ? 'Novo' : 'Atualizar';
+
+                div.innerHTML = `
+                    <input type="checkbox" class="import-item-checkbox" data-idx="${index}" ${item.checked ? 'checked' : ''} onchange="atualizarCheckboxIndividualImport(this)">
+                    ${fotoHtml}
+                    <div class="import-item-info">
+                        <div class="import-item-name">${item.dados.nome}</div>
+                        <div class="import-item-code">Código: ${item.dados.codigo}</div>
+                    </div>
+                    <div class="import-badge ${badgeClass}">${badgeTexto}</div>
+                `;
+
+                listaContainer.appendChild(div);
+            });
+
+            atualizarContadorSelecionadosImport();
+            openModal('importIncrementalModal');
+        }
+
+        function atualizarCheckboxIndividualImport(el) {
+            const idx = parseInt(el.getAttribute('data-idx'));
+            itensIncrementalMapeados[idx].checked = el.checked;
+            atualizarContadorSelecionadosImport();
+        }
+
+        function marcarDesmarcarTodosImport(status) {
+            const checkboxes = document.querySelectorAll('#importIncrementalLista .import-item-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = status;
+                const idx = parseInt(cb.getAttribute('data-idx'));
+                itensIncrementalMapeados[idx].checked = status;
+            });
+            atualizarContadorSelecionadosImport();
+        }
+
+        function atualizarContadorSelecionadosImport() {
+            const qtd = itensIncrementalMapeados.filter(i => i.checked).length;
+            document.getElementById('importContadorSelecionados').innerText = `${qtd} itens selecionados`;
+        }
+
+        // Grava as peças selecionadas incrementalmente no IndexedDB
+        async function executarImportacaoIncrementalConfirmada() {
+            const selecionados = itensIncrementalMapeados.filter(i => i.checked);
+            if (selecionados.length === 0) {
+                alert("Selecione pelo menos um item para importar.");
+                return;
+            }
+
+            try {
+                const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
+                const storePecas = tx.objectStore("pecas");
+                const storeMedidas = tx.objectStore("nomesMedidas");
+
+                // Adiciona também opções de medidas globais do backup se não existirem
+                if (backupDataTemporario.nomesMedidas && backupDataTemporario.nomesMedidas.length > 0) {
+                    backupDataTemporario.nomesMedidas.forEach(m => storeMedidas.put(m));
+                }
+
+                for (const item of selecionados) {
+                    const objetoParaGravar = { ...item.dados };
+                    
+                    if (item.status === 'atualizar') {
+                        // Mantém o ID interno existente para sobrescrever o registro correto
+                        objetoParaGravar.id = item.pecaLocalId;
+                        objetoParaGravar.dataAtualizacao = new Date().toISOString();
+                    } else {
+                        // Item Novo: Garante que não há ID antigo conflitando e define data de cadastro
+                        if (objetoParaGravar.id) delete objetoParaGravar.id;
+                        objetoParaGravar.dataCadastro = new Date().toISOString();
+                        objetoParaGravar.dataAtualizacao = null;
+                    }
+                    
+                    storePecas.put(objetoParaGravar);
+                }
+
+                tx.oncomplete = () => {
+                    alert("Importação incremental concluída com sucesso!");
+                    closeModal('importIncrementalModal');
+                    concluirFluxoImportacaoGeral();
+                };
+
+                tx.onerror = (e) => {
+                    console.error(e);
+                    alert("Erro operacional ao gravar dados incrementais.");
+                };
+
+            } catch (err) {
+                console.error(err);
+                alert("Ocorreu um erro inesperado no processamento incremental.");
+            }
+        }
+
+        function concluirFluxoImportacaoGeral() {
+            localStorage.setItem("backup_last_import", new Date().toISOString());
+            backupDataTemporario = null;
+            itensIncrementalMapeados = [];
+            currentIndex = 0;
+            currentPhotoIndex = 0;
+            carregarPecas();
+        }
+
+        async function exportarCatalogoPDF() {
+            alert("A funcionalidade de geração de PDF depende da estrutura externa do sistema.");
+        }
+
+        async function executarLimpezaBancoDados() {
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
                 const storePecas = tx.objectStore("pecas");
@@ -2131,7 +2124,7 @@
             const confirmacao1 = confirm("⚠️ Alerta Crítico:\nVocê tem certeza absoluta que deseja apagar TODAS as peças e configurações de medidas cadastradas do dispositivo?");
             if (!confirmacao1) return;
 
-            const confirmacao2 = prompt("Para confirmar a exclusão permanente de todo o sistema, digite o termo abaixo:\\nEXCLUIR");
+            const confirmacao2 = prompt("Para confirmar a exclusão permanente de todo o sistema, digite o termo abaixo:\nEXCLUIR");
             if (confirmacao2 !== "EXCLUIR" && confirmacao2 !== "excluir") {
                 alert("Confirmação inválida. Operação abortada.");
                 return;
