@@ -166,7 +166,7 @@
             border-radius: 12px;
             border: 1px solid #334155;
             box-shadow: var(--shadow-sm);
-            touch-action: none; /* Impede comportamento nativo do navegador para aceitar os gestos perfeitamente */
+            touch-action: none;
             user-select: none;
         }
 
@@ -175,7 +175,7 @@
             height: 100%;
             width: 100%;
             transition: transform 0.25s ease-out;
-            pointer-events: none; /* Permite que o touch chegue direto no container pai */
+            pointer-events: none;
         }
 
         .slide {
@@ -666,7 +666,7 @@
         }
 
         .modal-footer-buttons .btn-secondary {
-            background: #e2e8f0;
+            background: #e2e2e2;
             color: var(--text);
         }
 
@@ -1131,7 +1131,6 @@
         const dbName = "CatalogoTecnicoDB";
         const dbVersion = 1;
 
-        // Variáveis globais para rastreamento do sistema de gestos por toque (Swipe)
         let touchStartX = 0;
         let touchStartY = 0;
         let touchEndX = 0;
@@ -1155,7 +1154,7 @@
                 inicializarNomesMedidasBase().then(() => {
                     carregarPecas();
                     carregarLabelsMetadadosBackup();
-                    configurarGestosTouchViewer(); // Ativa os gestos assim que o banco inicia
+                    configurarGestosTouchViewer();
                 });
             };
 
@@ -1164,19 +1163,16 @@
             };
         }
 
-        // Nova implementação robusta de detecção de gestos (Horizontal e Vertical)
         function configurarGestosTouchViewer() {
             const viewer = document.getElementById("imageViewer");
             if (!viewer) return;
 
             viewer.addEventListener("touchstart", function(e) {
-                // Captura a posição inicial do toque
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
             }, { passive: true });
 
             viewer.addEventListener("touchend", function(e) {
-                // Captura a posição final onde o usuário soltou o dedo
                 touchEndX = e.changedTouches[0].clientX;
                 touchEndY = e.changedTouches[0].clientY;
                 analisarGestoSwipe();
@@ -1187,25 +1183,22 @@
             const diffX = touchEndX - touchStartX;
             const diffY = touchEndY - touchStartY;
             
-            const minSwipeDistance = 45; // Distância mínima em pixels para validar o movimento
+            const minSwipeDistance = 45;
 
-            // Compara se o movimento foi majoritariamente Horizontal ou Vertical
             if (Math.abs(diffX) > Math.abs(diffY)) {
-                // Gesto Horizontal -> Muda a imagem da peça atual
                 if (Math.abs(diffX) > minSwipeDistance) {
                     if (diffX > 0) {
-                        mudarFoto(-1); // Deslizar para a direita mostra a foto anterior
+                        mudarFoto(-1);
                     } else {
-                        mudarFoto(1);  // Deslizar para a esquerda mostra a próxima foto
+                        mudarFoto(1);
                     }
                 }
             } else {
-                // Gesto Vertical -> Muda a peça completa
                 if (Math.abs(diffY) > minSwipeDistance) {
                     if (diffY > 0) {
-                        mudarPeca(-1); // Deslizar para baixo mostra a peça anterior
+                        mudarPeca(-1);
                     } else {
-                        mudarPeca(1);  // Deslizar para cima mostra a próxima peça
+                        mudarPeca(1);
                     }
                 }
             }
@@ -1786,22 +1779,69 @@
             };
         }
 
+        function dataURLtoFile(dataurl, filename) {
+            let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+            while(n--){
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new File([u8arr], filename, {type:mime});
+        }
+
         function compartilharPecaCompletaWhatsApp() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
 
-            let texto = `*Ficha Técnica - ${peca.nome}*\n`;
-            texto += `*Código:* ${peca.codigo}\n`;
-            if (peca.fornecedor) texto += `*Medidas por:* ${peca.fornecedor}\n`;
-            if (peca.observacao) texto += `*Observação:* ${peca.observacao}\n`;
+            // Construção do bloco exato de texto
+            let texto = `*Peça:* ${peca.nome}\n`;
+            texto += `*Código:* ${peca.codigo}\n\n`;
+            texto += `*MEDIDAS:*\n`;
             
             if (peca.medidas && peca.medidas.length > 0) {
-                texto += `\n*Medidas de Engenharia:*\n`;
                 peca.medidas.forEach(m => {
-                    texto += `• ${m.nome || m.nomeMedida}: ${m.valor} ${m.unidade}\n`;
+                    texto += ` ◆ *${m.nome || m.nomeMedida}:* ${m.valor} ${m.unidade}\n`;
                 });
+            } else {
+                texto += `Nenhuma medida listada.\n`;
+            }
+            
+            texto += `\n`;
+            
+            let obsText = (peca.observacao && peca.observacao.trim() !== "") ? peca.observacao : "Nenhuma";
+            texto += `*Observações:* ${obsText}\n\n`;
+            
+            texto += `_Enviado via Catálogo Técnico_`;
+
+            // Verificação nativa da API de partilha com ficheiro mapeado como legenda direta
+            if (peca.fotos && peca.fotos.length > 0 && navigator.canShare) {
+                try {
+                    const blobImg = dataURLtoFile(peca.fotos[0], `foto_${peca.codigo}.png`);
+                    const listaArquivos = [blobImg];
+
+                    // Ao passar o texto como propriedade "text" E "title", alguns sistemas interpretam melhor como legenda da imagem
+                    const dadosPartilha = {
+                        files: listaArquivos,
+                        title: `Peça: ${peca.nome}`,
+                        text: texto
+                    };
+
+                    if (navigator.canShare({ files: listaArquivos })) {
+                        navigator.share(dadosPartilha).catch(err => {
+                            console.log("Compartilhamento nativo falhou ou foi cancelado, usando fallback:", err);
+                            abrirFallbackWhatsAppLink(texto);
+                        });
+                        return;
+                    }
+                } catch (e) {
+                    console.error("Erro ao converter arquivo para API de compartilhamento:", e);
+                }
             }
 
+            // Fallback imediato via Link da API se não houver imagens ou se falhar
+            abrirFallbackWhatsAppLink(texto);
+        }
+
+        function abrirFallbackWhatsAppLink(texto) {
             const urlShare = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
             window.open(urlShare, '_blank');
         }
