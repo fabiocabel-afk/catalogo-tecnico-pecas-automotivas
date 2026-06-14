@@ -300,7 +300,7 @@
         .piece-info-card {
             background: var(--surface);
             margin: 0.4rem 0.8rem;
-            padding: 1rem;
+            padding: 0.8rem 1rem;
             border-radius: 12px;
             border: 1px solid var(--border);
             box-shadow: var(--shadow-sm);
@@ -350,6 +350,22 @@
             color: var(--text-secondary);
         }
 
+        .piece-extra-layout {
+            font-size: 0.85rem;
+            color: var(--text);
+            margin-top: 0.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            border-top: 1px dashed var(--border);
+            padding-top: 0.3rem;
+        }
+
+        .piece-extra-layout div span {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
         .measurements-card-container {
             flex: 1;
             background: var(--surface);
@@ -376,7 +392,7 @@
         }
 
         th, td {
-            padding: 0.8rem 1rem;
+            padding: 0.45rem 1rem;
             border-bottom: 1px solid var(--border);
             font-size: 0.9rem;
         }
@@ -387,6 +403,7 @@
             text-transform: uppercase;
             font-size: 0.75rem;
             letter-spacing: 0.05em;
+            padding: 0.5rem 1rem;
         }
 
         tbody tr:last-child td {
@@ -445,7 +462,7 @@
 
         .form-tabs {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.4rem;
             margin-top: 0.8rem;
             overflow-x: auto;
             white-space: nowrap;
@@ -455,10 +472,10 @@
 
         .form-tab-btn {
             flex: 1;
-            padding: 0.5rem 0.8rem;
+            padding: 0.5rem 0.6rem;
             background: #f1f5f9;
             border: 1px solid var(--border);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
             color: var(--text-secondary);
             cursor: pointer;
@@ -503,6 +520,43 @@
             color: var(--text-secondary);
             font-weight: 500;
         }
+
+        .form-row-inline {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .form-group-global-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1f5f9;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .global-actions-btns {
+            display: flex;
+            gap: 0.35rem;
+        }
+
+        .global-actions-btns button {
+            padding: 0.3rem 0.6rem;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: white;
+        }
+
+        .btn-g-add { background: #10b981; }
+        .btn-g-del { background: var(--danger); }
 
         input, select, textarea {
             padding: 0.65rem;
@@ -574,11 +628,15 @@
             flex-shrink: 0;
         }
 
-        .measurement-row-form {
+        .measurement-row-form, .material-row-form {
             display: grid;
             grid-template-columns: 2fr 1.2fr 1fr auto;
             gap: 0.4rem;
             align-items: center;
+        }
+
+        .material-row-form {
+            grid-template-columns: 3fr auto;
         }
 
         .info-popup-section {
@@ -912,6 +970,10 @@
                 <button class="info-icon-btn" id="infoIconBtn" onclick="openInfoModal()">ⓘ</button>
             </div>
             <div class="piece-code" id="viewCodigo">Código: --</div>
+            <div class="piece-extra-layout" id="viewExtraFields">
+                <div><span>Material:</span> <span id="viewMaterial" style="color:var(--text); font-weight:normal;">--</span></div>
+                <div><span>Peso:</span> <span id="viewPeso" style="color:var(--text); font-weight:normal;">--</span></div>
+            </div>
         </div>
 
         <div class="measurements-card-container">
@@ -979,12 +1041,14 @@
                 <div class="backup-meta-box">
                     <div>Último Backup Exportado: <strong id="lblUltimoBackup">--</strong></div>
                     <div>Última Restauração Ficheiro: <strong id="lblUltimoRestauro">--</strong></div>
+                    <div id="lblTamanhoEstimado" style="margin-top:4px; font-size:0.78rem; color:#64748b;"></div>
                 </div>
-                <button class="backup-btn backup-btn-export" onclick="exportarDadosSistema()">📤 Exportar Ficheiro de Backup</button>
+                <button class="backup-btn backup-btn-export" onclick="exportarDadosSistema()">📤 Exportar Backup (com compressão)</button>
                 <div style="position:relative; width:100%;">
                     <button class="backup-btn backup-btn-import">📥 Restaurar de um Ficheiro</button>
                     <input type="file" id="importFileInput" accept=".json" onchange="processarFicheiroBackupInput(this)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
                 </div>
+                <button class="backup-btn" id="btnRecomprimir" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;" onclick="recomprimirFotosExistentes()">🗜️ Otimizar Fotos Existentes</button>
                 <button class="backup-btn backup-btn-danger" onclick="limparTodoOSistemaComAviso()">🗑️ Redefinir Sistema de Fábrica</button>
             </div>
             <div style="display: flex; justify-content: center; margin-top: 1.2rem;">
@@ -1032,15 +1096,15 @@
 
     <div class="modal" id="deletarOpcaoModal">
         <div class="modal-content" style="padding: 1.4rem;">
-            <h3 style="font-size:1.1rem; margin-bottom:0.8rem; color:var(--danger);">Apagar Opção Global</h3>
+            <h3 style="font-size:1.1rem; margin-bottom:0.8rem; color:var(--danger);" id="deletarOpcaoModalTitle">Apagar Opção Global</h3>
             <div class="form-group">
-                <label>Selecione qual nome de medida deseja remover DEFINITIVAMENTE da lista fixa de opções:</label>
+                <label id="deletarOpcaoModalLabel">Selecione qual item deseja remover DEFINITIVAMENTE da lista fixa de opções:</label>
                 <select id="deletarSelectAlvo" style="margin-top:0.4rem;"></select>
-                <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.4rem; line-height:1.3;">Nota: Isto remove o nome apenas da lista fixa de seleção de novos cadastros. Medidas já preenchidas nas peças salvas não serão apagadas.</p>
+                <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.4rem; line-height:1.3;">Nota: Isto remove o item apenas da lista fixa de seleção de novos cadastros. Informações já salvas nas peças existentes não serão afetadas.</p>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.4rem;">
                 <button class="btn-secondary" style="padding:0.75rem; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="fecharModalDeletarOpcao()">Cancelar</button>
-                <button class="btn" style="padding:0.75rem; background: var(--danger); color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="confirmarDeletarMedidaGlobal()">Confirmar Exclusão</button>
+                <button class="btn" style="padding:0.75rem; background: var(--danger); color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;" id="deletarOpcaoModalConfirmBtn">Confirmar Exclusão</button>
             </div>
         </div>
     </div>
@@ -1051,12 +1115,12 @@
                 <h3 id="modalTitle" style="font-size:1.1rem;">Cadastrar Nova Peça</h3>
                 <div class="form-tabs">
                     <button class="form-tab-btn active" id="btn-tab-peca" type="button" onclick="switchTab('tab-peca')">Peça</button>
+                    <button class="form-tab-btn" id="btn-tab-material" type="button" onclick="switchTab('tab-material')">Material</button>
                     <button class="form-tab-btn" id="btn-tab-imagens" type="button" onclick="switchTab('tab-imagens')">Imagens</button>
                     <button class="form-tab-btn" id="btn-tab-medidas" type="button" onclick="switchTab('tab-medidas')">Medidas</button>
                     <button class="form-tab-btn" id="btn-tab-informacoes" type="button" onclick="switchTab('tab-informacoes')">Informações</button>
                 </div>
             </div>
-
             <form id="cadastroForm" onsubmit="salvarPeca(event)">
                 <input type="hidden" id="formId">
                 <div class="cadastro-form-body">
@@ -1069,6 +1133,43 @@
                         <div class="form-group">
                             <label>Código Técnico *</label>
                             <input type="text" id="formCodigo" required placeholder="Ex: PF-SEX-M8">
+                        </div>
+                        <div class="form-group">
+                            <div class="form-group-global-header">
+                                <span>Lista de Categorias</span>
+                                <div class="global-actions-btns">
+                                    <button type="button" class="btn-g-add" onclick="adicionarCategoriaGlobalPrompt()">+</button>
+                                    <button type="button" class="btn-g-del" onclick="abrirModalDeletarGlobal('categoria')">-</button>
+                                </div>
+                            </div>
+                            <select id="formCategoria">
+                                <option value="">Nenhuma Categoria</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-tab-content" id="tab-material">
+                        <div class="form-group">
+                            <label>Peso Manual</label>
+                            <div class="form-row-inline">
+                                <input type="number" id="formPesoValor" step="any" placeholder="Ex: 150" style="flex: 2;">
+                                <select id="formPesoUnidade" style="flex: 1;">
+                                    <option value="g">g</option>
+                                    <option value="mg">mg</option>
+                                    <option value="kg">kg</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="form-group-global-header">
+                                <span>Lista de Materiais</span>
+                                <div class="global-actions-btns">
+                                    <button type="button" class="btn-g-add" onclick="adicionarMaterialGlobalPrompt()">+</button>
+                                    <button type="button" class="btn-g-del" onclick="abrirModalDeletarGlobal('material')">-</button>
+                                </div>
+                            </div>
+                            <div id="formMateriaisContainer" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem;"></div>
+                            <button type="button" class="btn-secondary" onclick="adicionarLinhaMaterialSelecao()" style="padding: 0.5rem; font-size: 0.85rem; border-radius: 6px;">+ Selecionar Material</button>
                         </div>
                     </div>
 
@@ -1084,17 +1185,14 @@
                     </div>
 
                     <div class="form-tab-content" id="tab-medidas">
-                        <div style="display: flex; gap: 0.5rem; align-items: flex-end; background: #f1f5f9; padding: 0.6rem; border-radius: 6px; border: 1px dashed var(--border);">
-                            <div class="form-group" style="flex: 1;">
-                                <label style="font-size: 0.75rem;">Criar Nova Opção de Medida Global</label>
-                                <input type="text" id="novoNomeMedidaInput" placeholder="Ex: Diâmetro Externo">
+                        <div class="form-group-global-header">
+                            <span>Lista de Medidas</span>
+                            <div class="global-actions-btns">
+                                <button type="button" class="btn-g-add" onclick="adicionarMedidaGlobalPrompt()">+</button>
+                                <button type="button" class="btn-g-del" onclick="abrirModalDeletarGlobal('medida')">-</button>
                             </div>
-                            <button type="button" onclick="adicionarNovoNomeMedidaGlobal()" style="padding: 0.65rem 0.8rem; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">+</button>
-                            <button type="button" onclick="abrirModalDeletarOpcaoGlobal()" style="padding: 0.65rem 0.8rem; background: var(--danger); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;" title="Apagar Opção">-</button>
                         </div>
-
                         <div id="formMedidasContainer" style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem;"></div>
-                        
                         <button type="button" class="btn-secondary" onclick="adicionarLinhaMedida()" style="padding: 0.6rem; font-size: 0.85rem; border-radius: 6px; margin-top: 0.25rem;">+ Adicionar Campo de Medida</button>
                     </div>
 
@@ -1110,7 +1208,6 @@
                     </div>
 
                 </div>
-
                 <div class="modal-footer-buttons">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('cadastroModal')">Cancelar</button>
                     <button type="submit" class="btn">Salvar Registro</button>
@@ -1122,277 +1219,53 @@
     <script>
         let db;
         let pecas = [];
+        
         let nomesMedidasGlobais = ["Altura", "Largura", "Comprimento", "Espessura", "Diâmetro", "Passo", "Peso"];
+        let categoriasGlobais = ["Fixadores", "Usinados", "Estampados", "Injetados"];
+        let materiaisGlobais = ["Aço Carbono", "Aço Inox 304", "Aço Inox 316", "Latão", "Alumínio", "Nylon", "Cobre"];
+
         let currentIndex = 0;
         let currentPhotoIndex = 0;
-        let fotosTemporariasCadastro = []; 
+        let fotosTemporariasCadastro = [];
         let sortableFotosInstance = null;
+        let globalDeleteTargetType = ''; 
 
         const dbName = "CatalogoTecnicoDB";
-        const dbVersion = 1;
-
-        let touchStartX = 0;
-        let touchStartY = 0;
-        let touchEndX = 0;
-        let touchEndY = 0;
-
-        function initDB() {
-            const request = indexedDB.open(dbName, dbVersion);
-
-            request.onupgradeneeded = function(e) {
-                const database = e.target.result;
-                if (!database.objectStoreNames.contains("pecas")) {
-                    database.createObjectStore("pecas", { keyPath: "id", autoIncrement: true });
-                }
-                if (!database.objectStoreNames.contains("nomesMedidas")) {
-                    database.createObjectStore("nomesMedidas", { keyPath: "nome" });
-                }
-            };
-
-            request.onsuccess = function(e) {
-                db = e.target.result;
-                inicializarNomesMedidasBase().then(() => {
-                    carregarPecas();
-                    carregarLabelsMetadadosBackup();
-                    configurarGestosTouchViewer();
-                });
-            };
-
-            request.onerror = function() {
-                alert("Erro ao abrir o banco de dados local.");
-            };
-        }
-
-        function configurarGestosTouchViewer() {
-            const viewer = document.getElementById("imageViewer");
-            if (!viewer) return;
-
-            viewer.addEventListener("touchstart", function(e) {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-            }, { passive: true });
-
-            viewer.addEventListener("touchend", function(e) {
-                touchEndX = e.changedTouches[0].clientX;
-                touchEndY = e.changedTouches[0].clientY;
-                analisarGestoSwipe();
-            }, { passive: true });
-        }
-
-        function analisarGestoSwipe() {
-            const diffX = touchEndX - touchStartX;
-            const diffY = touchEndY - touchStartY;
-            
-            const minSwipeDistance = 45;
-
-            if (Math.abs(diffX) > Math.abs(diffY)) {
-                if (Math.abs(diffX) > minSwipeDistance) {
-                    if (diffX > 0) {
-                        mudarFoto(-1);
-                    } else {
-                        mudarFoto(1);
-                    }
-                }
-            } else {
-                if (Math.abs(diffY) > minSwipeDistance) {
-                    if (diffY > 0) {
-                        mudarPeca(-1);
-                    } else {
-                        mudarPeca(1);
-                    }
-                }
-            }
-        }
-
-        function inicializarNomesMedidasBase() {
-            return new Promise((resolve) => {
-                const tx = db.transaction("nomesMedidas", "readwrite");
-                const store = tx.objectStore("nomesMedidas");
-                
-                const requestAll = store.getAll();
-                requestAll.onsuccess = function() {
-                    if (requestAll.result.length === 0) {
-                        nomesMedidasGlobais.forEach(nome => {
-                            store.put({ nome: nome });
-                        });
-                        tx.oncomplete = () => {
-                            atualizarListaNomesMedidasGlobais().then(resolve);
-                        };
-                    } else {
-                        atualizarListaNomesMedidasGlobais().then(resolve);
-                    }
-                };
-            });
-        }
-
-        function atualizarListaNomesMedidasGlobais() {
-            return new Promise((resolve) => {
-                const tx = db.transaction("nomesMedidas", "readonly");
-                const store = tx.objectStore("nomesMedidas");
-                const req = store.getAll();
-                req.onsuccess = function() {
-                    nomesMedidasGlobais = req.result.map(item => item.nome).sort((a,b) => a.localeCompare(b));
-                    resolve();
-                };
-            });
-        }
-
-        function carregarPecas(idParaFocar = null) {
-            const tx = db.transaction("pecas", "readonly");
-            const store = tx.objectStore("pecas");
-            const request = store.getAll();
-
-            request.onsuccess = function() {
-                pecas = request.result || [];
-                
-                if (pecas.length > 0) {
-                    if (idParaFocar !== null) {
-                        const idx = pecas.findIndex(p => p.id === idParaFocar);
-                        currentIndex = idx !== -1 ? idx : 0;
-                    } else if (currentIndex >= pecas.length) {
-                        currentIndex = pecas.length - 1;
-                    }
-                    currentPhotoIndex = 0;
-                    renderizarPecaAtual();
-                    document.getElementById("menuPecaActions").style.display = "flex";
-                } else {
-                    currentIndex = 0;
-                    currentPhotoIndex = 0;
-                    limparVisualizacao();
-                    document.getElementById("menuPecaActions").style.display = "none";
-                }
-            };
-        }
-
-        function limparVisualizacao() {
-            document.getElementById("viewNome").textContent = "Nenhuma peça cadastrada";
-            document.getElementById("viewCodigo").textContent = "Código: --";
-            document.getElementById("measurementsTableBody").innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-secondary);">Use o menu para cadastrar itens</td></tr>`;
-            document.getElementById("navPieceCounter").textContent = "0 / 0";
-            document.getElementById("imageSlider").innerHTML = `<div class="slide"><div class="no-image">Nenhuma imagem carregada</div></div>`;
-            document.getElementById("dotsContainer").innerHTML = "";
-            document.getElementById("infoIconBtn").style.display = "none";
-        }
-
-        function renderizarPecaAtual() {
-            if (pecas.length === 0) return;
-            const peca = pecas[currentIndex];
-
-            document.getElementById("viewNome").textContent = peca.nome;
-            document.getElementById("viewCodigo").textContent = `Código: ${peca.codigo}`;
-            document.getElementById("navPieceCounter").textContent = `${currentIndex + 1} / ${pecas.length}`;
-            document.getElementById("infoIconBtn").style.display = "flex";
-
-            const tbody = document.getElementById("measurementsTableBody");
-            tbody.innerHTML = "";
-
-            if (peca.medidas && peca.medidas.length > 0) {
-                peca.medidas.forEach(m => {
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                        <td style="font-weight:500;">${m.nome || m.nomeMedida}</td>
-                        <td style="color:var(--primary); font-weight:700;">${m.valor}</td>
-                        <td style="color:var(--text-secondary); font-weight:500;">${m.unidade}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } else {
-                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-secondary);">Sem medidas cadastradas</td></tr>`;
-            }
-
-            renderizarFotosSlider(peca.fotos || []);
-        }
-
-        function renderizarFotosSlider(fotosArray) {
-            const slider = document.getElementById("imageSlider");
-            const dotsContainer = document.getElementById("dotsContainer");
-            slider.innerHTML = "";
-            dotsContainer.innerHTML = "";
-
-            if (fotosArray.length === 0) {
-                slider.innerHTML = `<div class="slide"><div class="no-image">Sem imagem cadastrada</div></div>`;
-                slider.style.transform = `translateX(0%)`;
-                return;
-            }
-
-            if (currentPhotoIndex >= fotosArray.length) {
-                currentPhotoIndex = fotosArray.length - 1;
-            }
-            if (currentPhotoIndex < 0) currentPhotoIndex = 0;
-
-            fotosArray.forEach((fotoData, idx) => {
-                const slide = document.createElement("div");
-                slide.className = "slide";
-                const img = document.createElement("img");
-                img.src = fotoData;
-                slide.appendChild(img);
-                slider.appendChild(slide);
-
-                const dot = document.createElement("div");
-                dot.className = `dot ${idx === currentPhotoIndex ? 'active' : ''}`;
-                dotsContainer.appendChild(dot);
-            });
-
-            const deslocamento = currentPhotoIndex * 100;
-            slider.style.transform = `translateX(-${deslocamento}%)`;
-        }
-
-        function mudarFoto(direcao) {
-            if (pecas.length === 0) return;
-            const fotos = pecas[currentIndex].fotos || [];
-            if (fotos.length <= 1) return;
-
-            currentPhotoIndex += direcao;
-            if (currentPhotoIndex >= fotos.length) currentPhotoIndex = 0;
-            if (currentPhotoIndex < 0) currentPhotoIndex = fotos.length - 1;
-
-            renderizarFotosSlider(fotos);
-        }
-
-        function mudarPeca(direcao) {
-            if (pecas.length === 0) return;
-            currentIndex += direcao;
-            if (currentIndex >= pecas.length) currentIndex = 0;
-            if (currentIndex < 0) currentIndex = pecas.length - 1;
-
-            currentPhotoIndex = 0;
-            renderizarPecaAtual();
-        }
+        const dbVersion = 2; 
+        let touchStartX = 0, touchStartY = 0;
+        let touchEndX = 0, touchEndY = 0;
+        let backupDataCarregadaImport = null;
 
         function toggleMenu() {
             document.getElementById("menuDropdown").classList.toggle("active");
         }
 
-        function execMenu(acao) {
-            toggleMenu();
-            switch (acao) {
-                case 'buscar':
-                    openModal('searchModal');
-                    document.getElementById("searchInput").value = "";
-                    document.getElementById("searchResults").style.display = "none";
-                    break;
-                case 'text':
-                    abrirListaModal();
-                    break;
-                case 'exportar_pdf':
-                    exportarCatalogoPDF();
-                    break;
-                case 'backup':
-                    abrirBackupModal();
-                    break;
-                case 'novo':
-                    abrirModalCadastro();
-                    break;
-                case 'editar':
-                    abrirModalCadastro(pecas[currentIndex]);
-                    break;
-                case 'excluir':
-                    excluirPecaAtualComAviso();
-                    break;
-                case 'compartilhar':
-                    compartilharPecaCompletaWhatsApp();
-                    break;
+        function closeMenu() {
+            document.getElementById("menuDropdown").classList.remove("active");
+        }
+
+        document.addEventListener("click", function(e) {
+            const menu = document.getElementById("menuDropdown");
+            const btn = document.querySelector(".menu-btn");
+            if (!menu.contains(e.target) && e.target !== btn) {
+                closeMenu();
             }
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll(".form-tab-btn").forEach(b => b.classList.remove("active"));
+            document.querySelectorAll(".form-tab-content").forEach(c => c.classList.remove("active"));
+            
+            const btnMap = {
+                'tab-peca': 'btn-tab-peca',
+                'tab-material': 'btn-tab-material',
+                'tab-imagens': 'btn-tab-imagens',
+                'tab-medidas': 'btn-tab-medidas',
+                'tab-informacoes': 'btn-tab-informacoes'
+            };
+            
+            document.getElementById(btnMap[tabId]).classList.add("active");
+            document.getElementById(tabId).classList.add("active");
         }
 
         function openModal(id) {
@@ -1401,68 +1274,483 @@
 
         function closeModal(id) {
             document.getElementById(id).classList.remove("active");
+            if (id === 'cadastroModal') {
+                document.getElementById("cadastroForm").reset();
+                document.getElementById("formId").value = "";
+                document.getElementById("formMedidasContainer").innerHTML = "";
+                document.getElementById("formMateriaisContainer").innerHTML = "";
+                fotosTemporariasCadastro = [];
+                document.getElementById("fotosAtuaisGrid").innerHTML = "";
+                if(sortableFotosInstance) {
+                    sortableFotosInstance.destroy();
+                    sortableFotosInstance = null;
+                }
+            }
+        }
+
+        function initDB() {
+            const request = indexedDB.open(dbName, dbVersion);
+
+            request.onupgradeneeded = function(e) {
+                const database = e.target.result;
+                
+                if (!database.objectStoreNames.contains("pecas")) {
+                    database.createObjectStore("pecas", { keyPath: "id", autoIncrement: true });
+                }
+                if (!database.objectStoreNames.contains("nomesMedidas")) {
+                    database.createObjectStore("nomesMedidas", { keyPath: "id", autoIncrement: true });
+                }
+                if (!database.objectStoreNames.contains("categorias")) {
+                    database.createObjectStore("categorias", { keyPath: "id", autoIncrement: true });
+                }
+                if (!database.objectStoreNames.contains("materiais")) {
+                    database.createObjectStore("materiais", { keyPath: "id", autoIncrement: true });
+                }
+            };
+
+            request.onsuccess = async function(e) {
+                db = e.target.result;
+                await carregarListasConfiguracoesGlobais();
+                carregarPecas();
+                carregarMetadadosLayoutBackup();
+            };
+
+            request.onerror = function() {
+                console.error("Erro ao abrir Banco de Dados IndexedDB.");
+            };
+        }
+
+        async function carregarListasConfiguracoesGlobais() {
+            return new Promise((resolve) => {
+                const tx = db.transaction(["nomesMedidas", "categorias", "materiais"], "readonly");
+                const storeMedidas = tx.objectStore("nomesMedidas");
+                const storeCats = tx.objectStore("categorias");
+                const storeMats = tx.objectStore("materiais");
+
+                let mReq = storeMedidas.getAll();
+                let cReq = storeCats.getAll();
+                let matReq = storeMats.getAll();
+
+                tx.oncomplete = () => {
+                    if (mReq.result && mReq.result.length > 0) {
+                        nomesMedidasGlobais = mReq.result.map(i => i.nome);
+                    } else {
+                        salvarListaPadraoIDB("nomesMedidas", nomesMedidasGlobais);
+                    }
+
+                    if (cReq.result && cReq.result.length > 0) {
+                        categoriasGlobais = cReq.result.map(i => i.nome);
+                    } else {
+                        salvarListaPadraoIDB("categorias", categoriasGlobais);
+                    }
+
+                    if (matReq.result && matReq.result.length > 0) {
+                        materiaisGlobais = matReq.result.map(i => i.nome);
+                    } else {
+                        salvarListaPadraoIDB("materiais", materiaisGlobais);
+                    }
+
+                    atualizarSelectCategoriasForm();
+                    resolve();
+                };
+            });
+        }
+
+        function salvarListaPadraoIDB(storeName, arrayDados) {
+            const tx = db.transaction(storeName, "readwrite");
+            const store = tx.objectStore(storeName);
+            arrayDados.forEach(item => {
+                store.add({ nome: item });
+            });
+        }
+
+        function atualizarSelectCategoriasForm() {
+            const select = document.getElementById("formCategoria");
+            select.innerHTML = '<option value="">Nenhuma Categoria</option>';
+            categoriasGlobais.sort().forEach(cat => {
+                const opt = document.createElement("option");
+                opt.value = cat;
+                opt.textContent = cat;
+                select.appendChild(opt);
+            });
+        }
+
+        function adicionarCategoriaGlobalPrompt() {
+            const novaCat = prompt("Digite o nome da NOVA Categoria Global:");
+            if (!novaCat || novaCat.trim() === "") return;
+            
+            const termo = novaCat.trim();
+            if (categoriasGlobais.includes(termo)) {
+                alert("Esta categoria já existe!");
+                return;
+            }
+
+            const tx = db.transaction("categorias", "readwrite");
+            tx.objectStore("categorias").add({ nome: termo });
+            tx.oncomplete = () => {
+                categoriasGlobais.push(termo);
+                atualizarSelectCategoriasForm();
+                alert("Categoria adicionada com sucesso!");
+            };
+        }
+
+        function adicionarMaterialGlobalPrompt() {
+            const novoMat = prompt("Digite o nome da NOVO Material Global:");
+            if (!novoMat || novoMat.trim() === "") return;
+
+            const termo = novoMat.trim();
+            if (materiaisGlobais.includes(termo)) {
+                alert("Este material já existe!");
+                return;
+            }
+
+            const tx = db.transaction("materiais", "readwrite");
+            tx.objectStore("materiais").add({ nome: termo });
+            tx.oncomplete = () => {
+                materiaisGlobais.push(termo);
+                alert("Material adicionado à lista global!");
+            };
+        }
+
+        function adicionarMedidaGlobalPrompt() {
+            const novaMed = prompt("Digite o nome da NOVA Opção de Medida Global:");
+            if (!novaMed || novaMed.trim() === "") return;
+
+            const termo = novaMed.trim();
+            if (nomesMedidasGlobais.includes(termo)) {
+                alert("Este nome de medida já existe!");
+                return;
+            }
+
+            const tx = db.transaction("nomesMedidas", "readwrite");
+            tx.objectStore("nomesMedidas").add({ nome: termo });
+            tx.oncomplete = () => {
+                nomesMedidasGlobais.push(termo);
+                alert("Medida adicionada à lista global!");
+            };
+        }
+
+        function abrirModalDeletarGlobal(tipo) {
+            globalDeleteTargetType = tipo;
+            const titleEl = document.getElementById("deletarOpcaoModalTitle");
+            const labelEl = document.getElementById("deletarOpcaoModalLabel");
+            const selectEl = document.getElementById("deletarSelectAlvo");
+            const confirmBtn = document.getElementById("deletarOpcaoModalConfirmBtn");
+
+            selectEl.innerHTML = "";
+
+            if (tipo === 'categoria') {
+                titleEl.textContent = "Apagar Categoria Global";
+                labelEl.textContent = "Selecione qual categoria deseja remover DEFINITIVAMENTE da lista fixa:";
+                categoriasGlobais.sort().forEach(c => {
+                    let o = document.createElement("option"); o.value = c; o.textContent = c; selectEl.appendChild(o);
+                });
+                confirmBtn.onclick = executarExclusaoCategoriaGlobal;
+            } else if (tipo === 'material') {
+                titleEl.textContent = "Apagar Material Global";
+                labelEl.textContent = "Selecione qual material deseja remover DEFINITIVAMENTE da lista fixa:";
+                materiaisGlobais.sort().forEach(m => {
+                    let o = document.createElement("option"); o.value = m; o.textContent = m; selectEl.appendChild(o);
+                });
+                confirmBtn.onclick = executarExclusaoMaterialGlobal;
+            } else {
+                titleEl.textContent = "Apagar Medida Global";
+                labelEl.textContent = "Selecione qual nome de medida deseja remover DEFINITIVAMENTE da lista fixa:";
+                nomesMedidasGlobais.sort().forEach(m => {
+                    let o = document.createElement("option"); o.value = m; o.textContent = m; selectEl.appendChild(o);
+                });
+                confirmBtn.onclick = executarExclusaoMedidaGlobal;
+            }
+
+            openModal("deletarOpcaoModal");
+        }
+
+        function fecharModalDeletarOpcao() {
+            closeModal("deletarOpcaoModal");
+        }
+
+        function executarExclusaoCategoriaGlobal() {
+            const alvo = document.getElementById("deletarSelectAlvo").value;
+            if(!alvo) return;
+            
+            const tx = db.transaction("categorias", "readwrite");
+            const store = tx.objectStore("categorias");
+            store.openCursor().onsuccess = (e) => {
+                let cursor = e.target.result;
+                if(cursor) {
+                    if(cursor.value.nome === alvo) {
+                        cursor.delete();
+                    } else {
+                        cursor.continue();
+                    }
+                }
+            };
+            tx.oncomplete = () => {
+                categoriasGlobais = categoriasGlobais.filter(i => i !== alvo);
+                atualizarSelectCategoriasForm();
+                fecharModalDeletarOpcao();
+                alert("Categoria removida das opções!");
+            };
+        }
+
+        function executarExclusaoMaterialGlobal() {
+            const alvo = document.getElementById("deletarSelectAlvo").value;
+            if(!alvo) return;
+
+            const tx = db.transaction("materiais", "readwrite");
+            const store = tx.objectStore("materiais");
+            store.openCursor().onsuccess = (e) => {
+                let cursor = e.target.result;
+                if(cursor) {
+                    if(cursor.value.nome === alvo) {
+                        cursor.delete();
+                    } else {
+                        cursor.continue();
+                    }
+                }
+            };
+            tx.oncomplete = () => {
+                materiaisGlobais = materiaisGlobais.filter(i => i !== alvo);
+                fecharModalDeletarOpcao();
+                alert("Material removido das opções!");
+            };
+        }
+
+        function executarExclusaoMedidaGlobal() {
+            const alvo = document.getElementById("deletarSelectAlvo").value;
+            if(!alvo) return;
+
+            const tx = db.transaction("nomesMedidas", "readwrite");
+            const store = tx.objectStore("nomesMedidas");
+            store.openCursor().onsuccess = (e) => {
+                let cursor = e.target.result;
+                if(cursor) {
+                    if(cursor.value.nome === alvo) {
+                        cursor.delete();
+                    } else {
+                        cursor.continue();
+                    }
+                }
+            };
+            tx.oncomplete = () => {
+                nomesMedidasGlobais = nomesMedidasGlobais.filter(i => i !== alvo);
+                fecharModalDeletarOpcao();
+                alert("Nome de medida removido das opções!");
+            };
+        }
+
+        function carregarPecas() {
+            const tx = db.transaction("pecas", "readonly");
+            tx.objectStore("pecas").getAll().onsuccess = function(e) {
+                pecas = (e.target.result || []).sort((a, b) => {
+                    const oa = (a.ordem !== undefined) ? a.ordem : a.id;
+                    const ob = (b.ordem !== undefined) ? b.ordem : b.id;
+                    return oa - ob;
+                });
+                if (pecas.length > 0) {
+                    if (currentIndex >= pecas.length) currentIndex = pecas.length - 1;
+                    if (currentIndex < 0) currentIndex = 0;
+                    renderizarPecaAtual();
+                    document.getElementById("menuPecaActions").style.display = "flex";
+                } else {
+                    currentIndex = 0;
+                    renderizarPecaVazia();
+                    document.getElementById("menuPecaActions").style.display = "none";
+                }
+            };
+        }
+
+        function renderizarPecaVazia() {
+            document.getElementById("viewNome").textContent = "Nenhuma peça cadastrada";
+            document.getElementById("viewCodigo").textContent = "Código: --";
+            document.getElementById("viewMaterial").textContent = "--";
+            document.getElementById("viewPeso").textContent = "--";
+            document.getElementById("navPieceCounter").textContent = "0 / 0";
+            document.getElementById("imageSlider").innerHTML = '<div class="no-image">Nenhuma Imagem</div>';
+            document.getElementById("dotsContainer").innerHTML = "";
+            document.getElementById("measurementsTableBody").innerHTML = "";
+            document.getElementById("infoIconBtn").style.display = "none";
+        }
+
+        function renderizarPecaAtual() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+
+            let textTitulo = peca.nome;
+            if (peca.categoria) {
+                textTitulo += ` (${peca.categoria})`;
+            }
+            document.getElementById("viewNome").textContent = textTitulo;
+            document.getElementById("viewCodigo").textContent = `Código: ${peca.codigo || '--'}`;
+            
+            const matTexto = (peca.materiais && peca.materiais.length > 0) ? peca.materiais.join(", ") : "--";
+            document.getElementById("viewMaterial").textContent = matTexto;
+
+            let pesoTexto = "--";
+            if (peca.pesoValor) {
+                pesoTexto = `${peca.pesoValor} ${peca.pesoUnidade || 'g'}`;
+            }
+            document.getElementById("viewPeso").textContent = pesoTexto;
+
+            document.getElementById("navPieceCounter").textContent = `${currentIndex + 1} / ${pecas.length}`;
+
+            document.getElementById("infoIconBtn").style.display = "flex";
+
+            currentPhotoIndex = 0;
+            renderizarFotosSlider(peca.fotos || []);
+
+            const tbody = document.getElementById("measurementsTableBody");
+            tbody.innerHTML = "";
+            if (peca.medidas && peca.medidas.length > 0) {
+                peca.medidas.forEach(m => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td style="font-weight: 500;">${m.nome}</td>
+                        <td style="color: var(--primary); font-weight: 700; text-align: center;">${m.valor}</td>
+                        <td style="color: var(--text-secondary); font-size: 0.85rem; text-align: center;">${m.unidade}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: var(--text-secondary); font-size:0.85rem;">Nenhuma medida cadastrada.</td></tr>`;
+            }
+        }
+
+        function renderizarFotosSlider(listaFotos) {
+            const slider = document.getElementById("imageSlider");
+            const dotsContainer = document.getElementById("dotsContainer");
+            slider.innerHTML = "";
+            dotsContainer.innerHTML = "";
+
+            if (listaFotos.length === 0) {
+                slider.innerHTML = '<div class="no-image">Nenhuma Imagem</div>';
+                return;
+            }
+
+            listaFotos.forEach((fBase64, idx) => {
+                const slide = document.createElement("div");
+                slide.classList.add("slide");
+                slide.innerHTML = `<img src="${fBase64}" alt="Foto da Peça">`;
+                slider.appendChild(slide);
+
+                const dot = document.createElement("div");
+                dot.classList.add("dot");
+                if (idx === 0) dot.classList.add("active");
+                dotsContainer.appendChild(dot);
+            });
+
+            slider.style.transform = `translateX(0%)`;
+        }
+
+        function mudarFoto(dir) {
+            const peca = pecas[currentIndex];
+            if (!peca || !peca.fotos || peca.fotos.length <= 1) return;
+
+            currentPhotoIndex += dir;
+            if (currentPhotoIndex < 0) currentPhotoIndex = peca.fotos.length - 1;
+            if (currentPhotoIndex >= peca.fotos.length) currentPhotoIndex = 0;
+
+            const slider = document.getElementById("imageSlider");
+            slider.style.transform = `translateX(-${currentPhotoIndex * 100}%)`;
+
+            const dots = document.querySelectorAll("#dotsContainer .dot");
+            dots.forEach((d, idx) => {
+                if (idx === currentPhotoIndex) d.classList.add("active");
+                else d.classList.remove("active");
+            });
+        }
+
+        function mudarPeca(dir) {
+            if (pecas.length <= 1) return;
+            currentIndex += dir;
+            if (currentIndex < 0) currentIndex = pecas.length - 1;
+            if (currentIndex >= pecas.length) currentIndex = 0;
+            renderizarPecaAtual();
+        }
+
+        const imgViewer = document.getElementById("imageViewer");
+
+        imgViewer.addEventListener("touchstart", e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+
+        imgViewer.addEventListener("touchend", e => {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipeGesture();
+        }, { passive: true });
+
+        function handleSwipeGesture() {
+            const dx = touchStartX - touchEndX;
+            const dy = touchStartY - touchEndY;
+            const limiar = 50;
+
+            // Determinar se o gesto é mais horizontal ou vertical
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // Horizontal → navega entre fotos
+                if (dx > limiar) mudarFoto(1);
+                else if (dx < -limiar) mudarFoto(-1);
+            } else {
+                // Vertical → navega entre peças
+                if (dy > limiar) mudarPeca(1);
+                else if (dy < -limiar) mudarPeca(-1);
+            }
+        }
+
+        function toggleMenu() {
+            document.getElementById("menuDropdown").classList.toggle("active");
+        }
+
+        function execMenu(opcao) {
+            closeMenu();
+            if (opcao === 'buscar') {
+                openModal("searchModal");
+                document.getElementById("searchInput").value = "";
+                document.getElementById("searchResults").style.display = "none";
+                setTimeout(() => document.getElementById("searchInput").focus(), 300);
+            } else if (opcao === 'text') {
+                abrirListaModalCompleta();
+            } else if (opcao === 'exportar_pdf') {
+                gerarCatalogoVisual();
+            } else if (opcao === 'backup') {
+                openModal("backupModal");
+                carregarMetadadosLayoutBackup();
+                calcularTamanhoEstimado();
+            } else if (opcao === 'novo') {
+                configurarFormCadastro(null);
+            } else if (opcao === 'compartilhar') {
+                compartilharPecaTexto();
+            } else if (opcao === 'editar') {
+                configurarFormCadastro(pecas[currentIndex]);
+            } else if (opcao === 'excluir') {
+                deletarPecaAtualComAviso();
+            }
         }
 
         function openInfoModal() {
             if (pecas.length === 0) return;
             const peca = pecas[currentIndex];
 
-            document.getElementById("infoModalTitle").textContent = peca.nome;
-            document.getElementById("infoObservacaoText").textContent = peca.observacao && peca.observacao.trim() !== "" ? peca.observacao : "Nenhuma observação informada.";
-            document.getElementById("infoMetaText").textContent = peca.fornecedor && peca.fornecedor.trim() !== "" ? peca.fornecedor : "Não informado.";
+            document.getElementById("infoModalTitle").textContent = peca.nome || "Detalhes da Peça";
             
-            const containerHist = document.getElementById("infoDataHistoricoContainer");
-            if (peca.dataSalvo) {
-                containerHist.style.display = "block";
-                document.getElementById("infoDataHistoricoText").textContent = peca.dataSalvo;
+            if (peca.observacao && peca.observacao.trim() !== "") {
+                document.getElementById("infoObsContainer").style.display = "block";
+                document.getElementById("infoObservacaoText").textContent = peca.observacao;
             } else {
-                containerHist.style.display = "none";
+                document.getElementById("infoObsContainer").style.display = "none";
+            }
+
+            document.getElementById("infoMetaText").textContent = peca.fornecedor || "Não informado";
+            
+            if (peca.dataAtualizacao) {
+                document.getElementById("infoDataHistoricoContainer").style.display = "block";
+                document.getElementById("infoDataHistoricoText").textContent = peca.dataAtualizacao;
+            } else {
+                document.getElementById("infoDataHistoricoContainer").style.display = "none";
             }
 
             openModal("infoModal");
-        }
-
-        function abrirListaModal() {
-            const container = document.getElementById("listModalResults");
-            container.innerHTML = "";
-
-            if (pecas.length === 0) {
-                container.innerHTML = `<div style="padding:1rem; text-align:center; color:var(--text-secondary); font-size:0.9rem;">Nenhuma peça no sistema</div>`;
-                openModal("listModal");
-                return;
-            }
-
-            const pecasOrdenadas = [...pecas].sort((a,b) => a.nome.localeCompare(b.nome));
-
-            pecasOrdenadas.forEach(p => {
-                const div = document.createElement("div");
-                div.className = "search-item";
-                div.onclick = () => {
-                    closeModal("listModal");
-                    const idxReal = pecas.findIndex(item => item.id === p.id);
-                    if (idxReal !== -1) {
-                        currentIndex = idxReal;
-                        currentPhotoIndex = 0;
-                        renderizarPecaAtual();
-                    }
-                };
-
-                let thumbHtml = `<div class="search-item-thumb-empty">Sem<br>Foto</div>`;
-                if (p.fotos && p.fotos.length > 0) {
-                    thumbHtml = `<img class="search-item-thumb" src="${p.fotos[0]}" alt="Thumb">`;
-                }
-
-                div.innerHTML = `
-                    ${thumbHtml}
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text);">${p.nome}</div>
-                        <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:500; margin-top:1px;">Código: ${p.codigo}</div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-
-            openModal("listModal");
         }
 
         function handleSearchInput() {
@@ -1475,847 +1763,837 @@
                 return;
             }
 
-            const filtrados = pecas.filter(p => p.nome.toLowerCase().includes(query) || p.codigo.toLowerCase().includes(query));
+            const filtradas = pecas.filter(p => 
+                (p.nome && p.nome.toLowerCase().includes(query)) || 
+                (p.codigo && p.codigo.toLowerCase().includes(query)) ||
+                (p.categoria && p.categoria.toLowerCase().includes(query))
+            );
 
-            if (filtrados.length === 0) {
-                resultsDiv.innerHTML = `<div style="padding:0.75rem; text-align:center; color:var(--text-secondary); font-size:0.85rem;">Nenhum resultado encontrado</div>`;
+            if (filtradas.length === 0) {
+                resultsDiv.innerHTML = `<div style="padding:0.8rem; font-size:0.85rem; color:var(--text-secondary); text-align:center;">Nenhum registro localizado.</div>`;
                 resultsDiv.style.display = "block";
                 return;
             }
 
-            filtrados.forEach(p => {
-                const div = document.createElement("div");
-                div.className = "search-item";
-                div.onclick = () => {
-                    closeModal("searchModal");
-                    const idxReal = pecas.findIndex(item => item.id === p.id);
-                    if (idxReal !== -1) {
-                        currentIndex = idxReal;
-                        currentPhotoIndex = 0;
-                        renderizarPecaAtual();
-                    }
-                };
-
-                let thumbHtml = `<div class="search-item-thumb-empty">Sem<br>Foto</div>`;
+            filtradas.forEach(p => {
+                const item = document.createElement("div");
+                item.classList.add("search-item");
+                
+                let thumbHTML = `<div class="search-item-thumb-empty">S/ Foto</div>`;
                 if (p.fotos && p.fotos.length > 0) {
-                    thumbHtml = `<img class="search-item-thumb" src="${p.fotos[0]}" alt="Thumb">`;
+                    thumbHTML = `<img src="${p.fotos[0]}" class="search-item-thumb" alt="Thumb">`;
                 }
 
-                div.innerHTML = `
-                    ${thumbHtml}
+                item.innerHTML = `
+                    ${thumbHTML}
                     <div style="flex:1; min-width:0;">
-                        <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text);">${p.nome}</div>
-                        <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:500; margin-top:1px;">Código: ${p.codigo}</div>
+                        <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.nome}</div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:500;">Cód: ${p.codigo || '--'} ${p.categoria ? ' | ' + p.categoria : ''}</div>
                     </div>
                 `;
-                resultsDiv.appendChild(div);
+                item.onclick = () => {
+                    currentIndex = pecas.findIndex(orig => orig.id === p.id);
+                    renderizarPecaAtual();
+                    closeModal("searchModal");
+                };
+                resultsDiv.appendChild(item);
             });
 
             resultsDiv.style.display = "block";
         }
 
-        function abrirModalCadastro(pecaParaEditar = null) {
-            const form = document.getElementById("cadastroForm");
-            form.reset();
-            fotosTemporariasCadastro = [];
-            document.getElementById("formMedidasContainer").innerHTML = "";
+        function abrirListaModalCompleta() {
+            const container = document.getElementById("listModalResults");
+            container.innerHTML = "";
 
-            if (pecaParaEditar) {
-                document.getElementById("modalTitle").textContent = "Editar Peça";
-                document.getElementById("formId").value = pecaParaEditar.id;
-                document.getElementById("formNome").value = pecaParaEditar.nome;
-                document.getElementById("formCodigo").value = pecaParaEditar.codigo;
-                document.getElementById("formFornecedor").value = pecaParaEditar.fornecedor || "";
-                document.getElementById("formObservacao").value = pecaParaEditar.observacao || "";
-                
-                if (pecaParaEditar.fotos) {
-                    fotosTemporariasCadastro = [...pecaParaEditar.fotos];
+            if (pecas.length === 0) {
+                container.innerHTML = `<div style="padding:2rem; text-align:center; color:var(--text-secondary);">Nenhuma peça registrada no dispositivo.</div>`;
+                openModal("listModal");
+                return;
+            }
+
+            pecas.forEach((p, idx) => {
+                const item = document.createElement("div");
+                item.classList.add("search-item");
+                item.dataset.id = p.id;
+                item.style.cursor = "default";
+
+                let thumbHTML = `<div class="search-item-thumb-empty">S/ Foto</div>`;
+                if (p.fotos && p.fotos.length > 0) {
+                    thumbHTML = `<img src="${p.fotos[0]}" class="search-item-thumb" alt="Thumb">`;
                 }
 
-                if (pecaParaEditar.medidas) {
-                    pecaParaEditar.medidas.forEach(m => {
-                        adicionarLinhaMedida(m.nome || m.nomeMedida, m.valor, m.unidade);
+                item.innerHTML = `
+                    <span class="drag-handle" style="font-size:1.15rem;color:#94a3b8;padding:0 0.4rem 0 0.1rem;flex-shrink:0;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;">⠿</span>
+                    ${thumbHTML}
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.nome}</div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:500;">Código: ${p.codigo || '--'}</div>
+                    </div>
+                    <div class="item-numero" style="font-size:0.8rem; font-weight:700; color:var(--primary); flex-shrink:0;">#${idx + 1}</div>
+                `;
+
+                // Clique navega para a peça — ignora se o toque foi no handle de drag
+                item.addEventListener("click", (e) => {
+                    if (e.target.classList.contains("drag-handle")) return;
+                    currentIndex = pecas.findIndex(orig => orig.id === p.id);
+                    renderizarPecaAtual();
+                    closeModal("listModal");
+                });
+
+                container.appendChild(item);
+            });
+
+            // Drag-and-drop com SortableJS — apenas pelo handle ⠿
+            if (window.Sortable) {
+                new Sortable(container, {
+                    animation: 150,
+                    handle: ".drag-handle",   // ← só o ícone ⠿ ativa o drag
+                    ghostClass: "drag-over",
+                    onEnd: function() {
+                        // Reordenar array de peças conforme nova posição visual
+                        const ids = Array.from(container.querySelectorAll(".search-item"))
+                            .map(el => parseInt(el.dataset.id));
+                        const pecasOrdenadas = ids.map(id => pecas.find(p => p.id === id));
+
+                        // Atualizar numeração visual
+                        container.querySelectorAll(".search-item .item-numero").forEach((el, i) => {
+                            el.textContent = `#${i + 1}`;
+                        });
+
+                        // Persistir nova ordem no IndexedDB
+                        const tx = db.transaction("pecas", "readwrite");
+                        const store = tx.objectStore("pecas");
+                        pecasOrdenadas.forEach((p, i) => {
+                            store.put({ ...p, ordem: i });
+                        });
+                        tx.oncomplete = () => {
+                            pecas = pecasOrdenadas.map((p, i) => ({ ...p, ordem: i }));
+                            if (currentIndex >= pecas.length) currentIndex = pecas.length - 1;
+                            renderizarPecaAtual();
+                        };
+                    }
+                });
+            }
+
+            openModal("listModal");
+        }
+
+        function deletarPecaAtualComAviso() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+
+            if (confirm(`Confirma a remoção definitiva do registro:\\n"${peca.nome}" (Código: ${peca.codigo})?`)) {
+                const tx = db.transaction("pecas", "readwrite");
+                tx.objectStore("pecas").delete(peca.id);
+                tx.oncomplete = () => {
+                    alert("Peça removida com sucesso.");
+                    carregarPecas();
+                };
+            }
+        }
+
+        function _montarTextoFicha(peca) {
+            let str = `*Peça:* ${peca.nome}\n`;
+            str += `*Código:* ${peca.codigo || '--'}\n`;
+            str += `\n`;
+
+            const mats = (peca.materiais && peca.materiais.length > 0) ? peca.materiais.join(", ") : null;
+            if (mats) str += `*Material:* ${mats}\n`;
+
+            const pesoStr = peca.pesoValor ? `${peca.pesoValor} ${peca.pesoUnidade || 'g'}` : null;
+            if (pesoStr) str += `*Peso:* ${pesoStr}\n`;
+
+            if (peca.medidas && peca.medidas.length > 0) {
+                str += `\n*MEDIDAS:*\n`;
+                peca.medidas.forEach(m => {
+                    str += `◆ *${m.nome}:* ${m.valor} ${m.unidade}\n`;
+                });
+            }
+
+            if (peca.observacao && peca.observacao.trim() !== "") {
+                str += `\n*Observações:* ${peca.observacao.trim()}\n`;
+            }
+
+            str += `\n_Enviado via Catálogo Técnico_`;
+            return str;
+        }
+
+        async function compartilharPecaTexto() {
+            if (pecas.length === 0) return;
+            const peca = pecas[currentIndex];
+            const texto = _montarTextoFicha(peca);
+            const temFoto = peca.fotos && peca.fotos.length > 0;
+
+            try {
+                if (temFoto) {
+                    // Converter base64 → Blob → File para compartilhar junto com o texto
+                    const res = await fetch(peca.fotos[0]);
+                    const blob = await res.blob();
+                    const ext = blob.type.includes("png") ? "png" : "jpg";
+                    const file = new File([blob], `${peca.codigo || 'peca'}.${ext}`, { type: blob.type });
+
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        // Abre seletor nativo do SO: WhatsApp, Gmail, Telegram, etc.
+                        await navigator.share({ title: peca.nome, text: texto, files: [file] });
+                        return;
+                    }
+                }
+
+                // Sem foto ou dispositivo sem suporte a compartilhar arquivos
+                if (navigator.share) {
+                    await navigator.share({ title: peca.nome, text: texto });
+                } else {
+                    // Fallback para desktop: copia texto para área de transferência
+                    await navigator.clipboard.writeText(texto);
+                    alert("Ficha Técnica copiada para a Área de Transferência!");
+                }
+
+            } catch (err) {
+                if (err.name !== "AbortError") {
+                    console.error(err);
+                    try {
+                        await navigator.clipboard.writeText(texto);
+                        alert("Ficha copiada para a Área de Transferência!");
+                    } catch (_) {
+                        alert("Não foi possível compartilhar neste dispositivo.");
+                    }
+                }
+            }
+        }
+
+        function configurarFormCadastro(pecaObjeto = null) {
+            const form = document.getElementById("cadastroForm");
+            form.reset();
+            
+            document.getElementById("formId").value = "";
+            document.getElementById("formMedidasContainer").innerHTML = "";
+            document.getElementById("formMateriaisContainer").innerHTML = "";
+            fotosTemporariasCadastro = [];
+
+            atualizarSelectCategoriasForm();
+
+            if (pecaObjeto) {
+                document.getElementById("modalTitle").textContent = "Editar Peça";
+                document.getElementById("formId").value = pecaObjeto.id;
+                document.getElementById("formNome").value = pecaObjeto.nome || "";
+                document.getElementById("formCodigo").value = pecaObjeto.codigo || "";
+                document.getElementById("formCategoria").value = pecaObjeto.categoria || "";
+                
+                document.getElementById("formPesoValor").value = pecaObjeto.pesoValor || "";
+                document.getElementById("formPesoUnidade").value = pecaObjeto.pesoUnidade || "g";
+
+                document.getElementById("formFornecedor").value = pecaObjeto.fornecedor || "";
+                document.getElementById("formObservacao").value = pecaObjeto.observacao || "";
+
+                if (pecaObjeto.materiais && pecaObjeto.materiais.length > 0) {
+                    pecaObjeto.materiais.forEach(matNome => {
+                        adicionarLinhaMaterialSelecao(matNome);
                     });
+                }
+
+                if (pecaObjeto.medidas && pecaObjeto.medidas.length > 0) {
+                    pecaObjeto.medidas.forEach(m => {
+                        adicionarLinhaMedida(m.nome, m.valor, m.unidade);
+                    });
+                }
+
+                if (pecaObjeto.fotos && pecaObjeto.fotos.length > 0) {
+                    fotosTemporariasCadastro = [...pecaObjeto.fotos];
                 }
             } else {
                 document.getElementById("modalTitle").textContent = "Cadastrar Nova Peça";
-                document.getElementById("formId").value = "";
-                adicionarLinhaMedida(); 
+                adicionarLinhaMedida("Altura", "", "mm");
+                adicionarLinhaMedida("Largura", "", "mm");
+                adicionarLinhaMedida("Comprimento", "", "mm");
             }
 
-            atualizarGridFotosCadastro();
-            switchTab('tab-peca');
+            renderizarGridFotosCadastro();
+            switchTab("tab-peca");
             openModal("cadastroModal");
         }
 
-        function switchTab(tabId) {
-            document.querySelectorAll(".form-tab-btn").forEach(b => b.classList.remove("active"));
-            document.querySelectorAll(".form-tab-content").forEach(c => c.classList.remove("active"));
+        function adicionarLinhaMaterialSelecao(valorSelecionado = "") {
+            const container = document.getElementById("formMateriaisContainer");
+            const divRow = document.createElement("div");
+            divRow.classList.add("material-row-form");
 
-            document.getElementById(`btn-${tabId}`).classList.add("active");
-            document.getElementById(tabId).classList.add("active");
-        }
-
-        function adicionarLinhaMedida(nomeSel = "", valorVal = "", unidadeSel = "mm") {
-            const container = document.getElementById("formMedidasContainer");
-            const div = document.createElement("div");
-            div.className = "measurement-row-form";
-
-            let optionsHtml = `<option value="" disabled ${nomeSel === "" ? 'selected' : ''}>Selecione...</option>`;
-            nomesMedidasGlobais.forEach(n => {
-                optionsHtml += `<option value="${n}" ${n === nomeSel ? 'selected' : ''}>${n}</option>`;
-            });
-
-            div.innerHTML = `
-                <select class="medida-nome-input" required>${optionsHtml}</select>
-                <input type="text" class="medida-valor-input" placeholder="Valor" required value="${valorVal}">
-                <select class="medida-unidade-input">
-                    <option value="mm" ${unidadeSel === 'mm' ? 'selected' : ''}>mm</option>
-                    <option value="cm" ${unidadeSel === 'cm' ? 'selected' : ''}>cm</option>
-                    <option value="m" ${unidadeSel === 'm' ? 'selected' : ''}>m</option>
-                    <option value="pol" ${unidadeSel === 'pol' ? 'selected' : ''}>pol</option>
-                    <option value="un" ${unidadeSel === 'un' ? 'selected' : ''}>un</option>
-                    <option value="kg" ${unidadeSel === 'kg' ? 'selected' : ''}>kg</option>
-                    <option value="g" ${unidadeSel === 'g' ? 'selected' : ''}>g</option>
-                </select>
-                <button type="button" onclick="this.parentElement.remove()" style="padding:0.6rem; background:var(--danger); color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">X</button>
-            `;
-            container.appendChild(div);
-        }
-
-        function adicionarNovoNomeMedidaGlobal() {
-            const input = document.getElementById("novoNomeMedidaInput");
-            const valor = input.value.trim();
-
-            if (valor === "") return;
-
-            const tx = db.transaction("nomesMedidas", "readwrite");
-            const store = tx.objectStore("nomesMedidas");
+            const select = document.createElement("select");
+            select.required = true;
+            select.innerHTML = '<option value="" disabled selected>Selecione um Material...</option>';
             
-            const baseObj = { nome: valor };
-            const req = store.put(baseObj);
-
-            req.onsuccess = function() {
-                atualizarListaNomesMedidasGlobais().then(() => {
-                    input.value = "";
-                    rebuildTodosSelectsMedidaCadastro();
-                });
-            };
-        }
-
-        function abrirModalDeletarOpcaoGlobal() {
-            const select = document.getElementById("deletarSelectAlvo");
-            select.innerHTML = "";
-            nomesMedidasGlobais.forEach(n => {
-                const op = document.createElement("option");
-                op.value = n;
-                op.textContent = n;
-                select.appendChild(op);
+            materiaisGlobais.sort().forEach(m => {
+                const opt = document.createElement("option");
+                opt.value = m;
+                opt.textContent = m;
+                if(m === valorSelecionado) opt.selected = true;
+                select.appendChild(opt);
             });
-            openModal("deletarOpcaoModal");
+
+            const btnDel = document.createElement("button");
+            btnDel.type = "button";
+            btnDel.textContent = "✕";
+            btnDel.style.padding = "0.5rem";
+            btnDel.style.background = "var(--danger)";
+            btnDel.style.color = "white";
+            btnDel.style.border = "none";
+            btnDel.style.borderRadius = "6px";
+            btnDel.style.fontWeight = "bold";
+            btnDel.style.cursor = "pointer";
+            btnDel.onclick = () => divRow.remove();
+
+            divRow.appendChild(select);
+            divRow.appendChild(btnDel);
+            container.appendChild(divRow);
         }
 
-        function fecharModalDeletarOpcao() {
-            closeModal("deletarOpcaoModal");
+        function adicionarLinhaMedida(nome = "", valor = "", unidade = "mm") {
+            const container = document.getElementById("formMedidasContainer");
+            const row = document.createElement("div");
+            row.classList.add("measurement-row-form");
+
+            const selectNome = document.createElement("select");
+            selectNome.innerHTML = "";
+            nomesMedidasGlobais.sort().forEach(n => {
+                const opt = document.createElement("option");
+                opt.value = n;
+                opt.textContent = n;
+                if (n === nome) opt.selected = true;
+                selectNome.appendChild(opt);
+            });
+
+            if (nome && !nomesMedidasGlobais.includes(nome)) {
+                const opt = document.createElement("option");
+                opt.value = nome;
+                opt.textContent = nome;
+                opt.selected = true;
+                selectNome.appendChild(opt);
+            }
+
+            const inputVal = document.createElement("input");
+            inputVal.type = "text";
+            inputVal.placeholder = "Valor";
+            inputVal.value = valor;
+            inputVal.required = true;
+
+            const inputUn = document.createElement("select");
+            inputUn.required = true;
+            const unidades = [
+                "mm", "cm", "dm", "m", "km",
+                "pol", "ft", "yd",
+                "mm²", "cm²", "m²",
+                "mm³", "cm³", "m³", "mL", "L",
+                "mg", "g", "kg", "t",
+                "°", "rad",
+                "N", "kN",
+                "Pa", "kPa", "MPa", "bar", "kgf/cm²",
+                "N·m", "kgf·m",
+                "RPM", "Hz",
+                "A", "V", "W", "kW", "Ω",
+                "°C", "°F", "K",
+                "HB", "HRC", "HRB", "HV",
+                "Ra", "Rz",
+                "%", "ppm", "un"
+            ];
+            unidades.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u;
+                opt.textContent = u;
+                if (u === unidade) opt.selected = true;
+                inputUn.appendChild(opt);
+            });
+            // Se a unidade salva não está na lista, adicionar como opção
+            if (!unidades.includes(unidade) && unidade) {
+                const opt = document.createElement("option");
+                opt.value = unidade;
+                opt.textContent = unidade;
+                opt.selected = true;
+                inputUn.appendChild(opt);
+            }
+
+            const btnDel = document.createElement("button");
+            btnDel.type = "button";
+            btnDel.textContent = "✕";
+            btnDel.style.padding = "0.65rem 0.6rem";
+            btnDel.style.background = "var(--danger)";
+            btnDel.style.color = "white";
+            btnDel.style.border = "none";
+            btnDel.style.borderRadius = "6px";
+            btnDel.style.fontWeight = "bold";
+            btnDel.style.cursor = "pointer";
+            btnDel.onclick = () => row.remove();
+
+            row.appendChild(selectNome);
+            row.appendChild(inputVal);
+            row.appendChild(inputUn);
+            row.appendChild(btnDel);
+
+            container.appendChild(row);
         }
 
-        function confirmarDeletarMedidaGlobal() {
-            const alvo = document.getElementById("deletarSelectAlvo").value;
-            if (!alvo) return;
+        // ── COMPRESSÃO DE IMAGEM ──────────────────────────────────────────
+        // Reduz a imagem para no máximo maxW x maxH e recodifica como JPEG
+        // com a qualidade definida (0.0 – 1.0). Retorna uma Promise<dataURL>.
+        function comprimirImagem(dataURL, maxW, maxH, qualidade) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = function () {
+                    let w = img.width, h = img.height;
 
-            const tx = db.transaction("nomesMedidas", "readwrite");
-            const store = tx.objectStore("nomesMedidas");
-            const req = store.delete(alvo);
+                    // Redimensionar mantendo proporção
+                    if (w > maxW || h > maxH) {
+                        const ratio = Math.min(maxW / w, maxH / h);
+                        w = Math.round(w * ratio);
+                        h = Math.round(h * ratio);
+                    }
 
-            req.onsuccess = function() {
-                atualizarListaNomesMedidasGlobais().then(() => {
-                    fecharModalDeletarOpcao();
-                    rebuildTodosSelectsMedidaCadastro();
-                });
-            };
-        }
-
-        function rebuildTodosSelectsMedidaCadastro() {
-            const lines = document.querySelectorAll(".measurement-row-form");
-            lines.forEach(line => {
-                const select = line.querySelector(".medida-nome-input");
-                const valorAtual = select.value;
-
-                let optionsHtml = `<option value="" disabled ${valorAtual === "" ? 'selected' : ''}>Selecione...</option>`;
-                nomesMedidasGlobais.forEach(n => {
-                    optionsHtml += `<option value="${n}" ${n === valorAtual ? 'selected' : ''}>${n}</option>`;
-                });
-                select.innerHTML = optionsHtml;
+                    const canvas = document.createElement("canvas");
+                    canvas.width  = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL("image/jpeg", qualidade));
+                };
+                img.onerror = () => resolve(dataURL); // fallback sem compressão
+                img.src = dataURL;
             });
         }
+
+        // Configurações de compressão
+        const COMP_ARMAZENAMENTO = { maxW: 1200, maxH: 1200, q: 0.72 }; // ao adicionar foto
+        const COMP_BACKUP        = { maxW: 900,  maxH: 900,  q: 0.60 }; // ao exportar backup
 
         function previewImagensSelecionadas(input) {
             if (!input.files || input.files.length === 0) return;
 
-            const arquivos = Array.from(input.files);
-            let carregados = 0;
+            const files = Array.from(input.files);
+            let processados = 0;
 
-            arquivos.forEach(file => {
+            files.forEach(file => {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    fotosTemporariasCadastro.push(e.target.result);
-                    carregados++;
-                    if (carregados === arquivos.length) {
-                        input.value = ""; 
-                        atualizarGridFotosCadastro();
-                    }
+                reader.onload = async function(e) {
+                    // Comprimir ao armazenar — mantém boa qualidade mas já reduz tamanho
+                    const comprimida = await comprimirImagem(
+                        e.target.result,
+                        COMP_ARMAZENAMENTO.maxW,
+                        COMP_ARMAZENAMENTO.maxH,
+                        COMP_ARMAZENAMENTO.q
+                    );
+                    fotosTemporariasCadastro.push(comprimida);
+                    processados++;
+                    if (processados === files.length) renderizarGridFotosCadastro();
                 };
                 reader.readAsDataURL(file);
             });
+            input.value = "";
         }
 
-        function atualizarGridFotosCadastro() {
+        function renderizarGridFotosCadastro() {
             const grid = document.getElementById("fotosAtuaisGrid");
             grid.innerHTML = "";
 
-            if (sortableFotosInstance) {
+            if(sortableFotosInstance) {
                 sortableFotosInstance.destroy();
                 sortableFotosInstance = null;
             }
 
-            fotosTemporariasCadastro.forEach((fotoData, index) => {
-                const div = document.createElement("div");
-                div.className = "foto-atual-item";
-                div.setAttribute("data-index", index);
-
-                div.innerHTML = `
-                    <img src="${fotoData}" alt="Foto">
-                    <button type="button" class="btn-remover-foto" onclick="removerFotoCadastroTemporario(${index})">REMOVER</button>
+            fotosTemporariasCadastro.forEach((fBase64, index) => {
+                const item = document.createElement("div");
+                item.classList.add("foto-atual-item");
+                item.dataset.index = index;
+                item.innerHTML = `
+                    <img src="${fBase64}">
+                    <button type="button" class="btn-remover-foto" onclick="removerFotoCadastro(${index}, event)">REMOVER</button>
                 `;
-                grid.appendChild(div);
+                grid.appendChild(item);
             });
 
-            if (fotosTemporariasCadastro.length > 1) {
-                sortableFotosInstance = new Sortable(grid, {
-                    animation: 150,
-                    ghostClass: 'drag-over',
-                    onEnd: function() {
-                        const novaOrdem = [];
-                        grid.querySelectorAll(".foto-atual-item").forEach(el => {
-                            const oldIdx = parseInt(el.getAttribute("data-index"));
-                            novaOrdem.push(fotosTemporariasCadastro[oldIdx]);
-                        });
-                        fotosTemporariasCadastro = novaOrdem;
-                        atualizarGridFotosCadastro();
-                    }
-                });
-            }
+            sortableFotosInstance = new Sortable(grid, {
+                animation: 150,
+                ghostClass: 'drag-over',
+                onEnd: function() {
+                    const novaOrdem = [];
+                    grid.querySelectorAll(".foto-atual-item").forEach(el => {
+                        const idxOriginal = parseInt(el.dataset.index);
+                        novaOrdem.push(fotosTemporariasCadastro[idxOriginal]);
+                    });
+                    fotosTemporariasCadastro = novaOrdem;
+                    renderizarGridFotosCadastro();
+                }
+            });
         }
 
-        function removerFotoCadastroTemporario(index) {
+        function removerFotoCadastro(index, e) {
+            e.stopPropagation();
             fotosTemporariasCadastro.splice(index, 1);
-            atualizarGridFotosCadastro();
+            renderizarGridFotosCadastro();
         }
 
         function salvarPeca(e) {
             e.preventDefault();
 
             const idVal = document.getElementById("formId").value;
-            const nomeVal = document.getElementById("formNome").value.trim();
-            const codigoVal = document.getElementById("formCodigo").value.trim();
-            const fornecedorVal = document.getElementById("formFornecedor").value.trim();
-            const observacaoVal = document.getElementById("formObservacao").value.trim();
+            const nome = document.getElementById("formNome").value.trim();
+            const codigo = document.getElementById("formCodigo").value.trim().toUpperCase();
+            const categoria = document.getElementById("formCategoria").value;
+            
+            const pesoValor = document.getElementById("formPesoValor").value ? parseFloat(document.getElementById("formPesoValor").value) : "";
+            const pesoUnidade = document.getElementById("formPesoUnidade").value;
 
-            const arrMedidas = [];
-            const lines = document.querySelectorAll(".measurement-row-form");
-            lines.forEach(l => {
-                const n = l.querySelector(".medida-nome-input").value;
-                const v = l.querySelector(".medida-valor-input").value.trim();
-                const u = l.querySelector(".medida-unidade-input").value;
-                if (n && v) {
-                    arrMedidas.push({ nome: n, valor: v, unidade: u });
-                }
+            const fornecedor = document.getElementById("formFornecedor").value.trim();
+            const observacao = document.getElementById("formObservacao").value.trim();
+
+            const materiais = [];
+            document.querySelectorAll("#formMateriaisContainer .material-row-form select").forEach(sel => {
+                if(sel.value) materiais.push(sel.value);
             });
 
-            const dataString = new Date().toLocaleString('pt-BR');
-
-            const pecaObjeto = {
-                nome: nomeVal,
-                codigo: codigoVal,
-                fornecedor: fornecedorVal,
-                observacao: observacaoVal,
-                medidas: arrMedidas,
-                fotos: fotosTemporariasCadastro,
-                dataSalvo: dataString
-            };
-
-            if (idVal !== "") {
-                pecaObjeto.id = parseInt(idVal);
-            }
-
-            const tx = db.transaction("pecas", "readwrite");
-            const store = tx.objectStore("pecas");
-            const request = store.put(pecaObjeto);
-
-            request.onsuccess = function(event) {
-                closeModal("cadastroModal");
-                const idSalvo = idVal !== "" ? pecaObjeto.id : event.target.result;
-                carregarPecas(idSalvo);
-            };
-
-            request.onerror = function() {
-                alert("Erro ao salvar os dados da peça.");
-            };
-        }
-
-        function excluirPecaAtualComAviso() {
-            if (pecas.length === 0) return;
-            const peca = pecas[currentIndex];
-
-            const confirmar = confirm(`Tem certeza que deseja remover permanentemente o registro de:\n"${peca.nome}" (Código: ${peca.codigo})?`);
-            if (!confirmar) return;
-
-            const tx = db.transaction("pecas", "readwrite");
-            const store = tx.objectStore("pecas");
-            const request = store.delete(peca.id);
-
-            request.onsuccess = function() {
-                carregarPecas();
-            };
-        }
-
-        function dataURLtoFile(dataurl, filename) {
-            let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
-                bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
-            while(n--){
-                u8arr[n] = bstr.charCodeAt(n);
-            }
-            return new File([u8arr], filename, {type:mime});
-        }
-
-        function compartilharPecaCompletaWhatsApp() {
-            if (pecas.length === 0) return;
-            const peca = pecas[currentIndex];
-
-            // Construção do bloco exato de texto
-            let texto = `*Peça:* ${peca.nome}\n`;
-            texto += `*Código:* ${peca.codigo}\n\n`;
-            texto += `*MEDIDAS:*\n`;
-            
-            if (peca.medidas && peca.medidas.length > 0) {
-                peca.medidas.forEach(m => {
-                    texto += ` ◆ *${m.nome || m.nomeMedida}:* ${m.valor} ${m.unidade}\n`;
+            const medidas = [];
+            document.querySelectorAll("#formMedidasContainer .measurement-row-form").forEach(row => {
+                const inputs = row.querySelectorAll("input, select");
+                medidas.push({
+                    nome: inputs[0].value,
+                    valor: inputs[1].value.trim(),
+                    unidade: inputs[2].value.trim()
                 });
+            });
+
+            const hoje = new Date();
+            const dataStr = `${hoje.getDate().toString().padStart(2,'0')}/${(hoje.getMonth()+1).toString().padStart(2,'0')}/${hoje.getFullYear()} às ${hoje.getHours().toString().padStart(2,'0')}:${hoje.getMinutes().toString().padStart(2,'0')}`;
+
+            const pecaDados = {
+                nome,
+                codigo,
+                categoria,
+                pesoValor,
+                pesoUnidade,
+                materiais,
+                fornecedor,
+                observacao,
+                medidas,
+                fotos: fotosTemporariasCadastro,
+                dataAtualizacao: dataStr
+            };
+
+            const tx = db.transaction("pecas", "readwrite");
+            const store = tx.objectStore("pecas");
+
+            if (idVal) {
+                pecaDados.id = parseInt(idVal);
+                store.put(pecaDados);
             } else {
-                texto += `Nenhuma medida listada.\n`;
+                store.add(pecaDados);
             }
-            
-            texto += `\n`;
-            
-            let obsText = (peca.observacao && peca.observacao.trim() !== "") ? peca.observacao : "Nenhuma";
-            texto += `*Observações:* ${obsText}\n\n`;
-            
-            texto += `_Enviado via Catálogo Técnico_`;
 
-            // Verificação nativa da API de partilha com ficheiro mapeado como legenda direta
-            if (peca.fotos && peca.fotos.length > 0 && navigator.canShare) {
-                try {
-                    const blobImg = dataURLtoFile(peca.fotos[0], `foto_${peca.codigo}.png`);
-                    const listaArquivos = [blobImg];
-
-                    // Ao passar o texto como propriedade "text" E "title", alguns sistemas interpretam melhor como legenda da imagem
-                    const dadosPartilha = {
-                        files: listaArquivos,
-                        title: `Peça: ${peca.nome}`,
-                        text: texto
+            tx.oncomplete = () => {
+                alert("Peça salva com sucesso no banco local!");
+                closeModal("cadastroModal");
+                
+                if (idVal) {
+                    carregarPecas();
+                } else {
+                    tx.db.transaction("pecas","readonly").objectStore("pecas").getAll().onsuccess = (ev) => {
+                        pecas = ev.target.result || [];
+                        currentIndex = pecas.length - 1; 
+                        renderizarPecaAtual();
+                        document.getElementById("menuPecaActions").style.display = "flex";
                     };
-
-                    if (navigator.canShare({ files: listaArquivos })) {
-                        navigator.share(dadosPartilha).catch(err => {
-                            console.log("Compartilhamento nativo falhou ou foi cancelado, usando fallback:", err);
-                            abrirFallbackWhatsAppLink(texto);
-                        });
-                        return;
-                    }
-                } catch (e) {
-                    console.error("Erro ao converter arquivo para API de compartilhamento:", e);
                 }
-            }
-
-            // Fallback imediato via Link da API se não houver imagens ou se falhar
-            abrirFallbackWhatsAppLink(texto);
-        }
-
-        function abrirFallbackWhatsAppLink(texto) {
-            const urlShare = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
-            window.open(urlShare, '_blank');
-        }
-
-        async function exportarCatalogoPDF() {
-            if (typeof pecas === 'undefined' || pecas.length === 0) {
-                alert("Não existem peças cadastradas para gerar o catálogo.");
-                return;
-            }
-
-            const iframe = document.createElement('iframe');
-            iframe.style.position = 'fixed';
-            iframe.style.right = '0';
-            iframe.style.bottom = '0';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
-            iframe.style.border = 'none';
-            document.body.appendChild(iframe);
-
-            const doc = iframe.contentWindow.document;
-
-            let html = `
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <head>
-                <meta charset="UTF-8">
-                <title>Catálogo Técnico</title>
-                <style>
-                    @page {
-                        size: A4 portrait;
-                        margin: 15mm 15mm 20mm 15mm;
-                    }
-                    body {
-                        font-family: Arial, sans-serif;
-                        color: #333;
-                        background: #fff;
-                        margin: 0;
-                        padding: 0;
-                    }
-                    .page-break {
-                        page-break-after: always;
-                        box-sizing: border-box;
-                    }
-                    .page-break:last-child {
-                        page-break-after: avoid;
-                    }
-                    .catalog-header {
-                        border-bottom: 2px solid #2563eb;
-                        padding-bottom: 8px;
-                        margin-bottom: 25px;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: flex-end;
-                    }
-                    .catalog-header h1 {
-                        font-size: 20px;
-                        color: #1e3a8a;
-                        margin: 0;
-                        text-transform: uppercase;
-                    }
-                    .catalog-header .date {
-                        font-size: 11px;
-                        color: #666;
-                    }
-                    .product-block {
-                        margin-bottom: 35px;
-                        background: #fff;
-                        box-sizing: border-box;
-                    }
-                    .product-title {
-                        font-size: 16px;
-                        font-weight: bold;
-                        color: #0f172a;
-                        margin-bottom: 4px;
-                    }
-                    .product-code {
-                        font-size: 12px;
-                        color: #64748b;
-                        margin-bottom: 12px;
-                        font-weight: 500;
-                    }
-                    .product-content {
-                        display: flex;
-                        gap: 20px;
-                        align-items: flex-start;
-                    }
-                    .product-image-container {
-                        width: 45%;
-                        border: 1px solid #e2e8f0;
-                        border-radius: 6px;
-                        padding: 6px;
-                        background: #f8fafc;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        height: 195px;
-                    }
-                    .product-image-container img {
-                        max-width: 100%;
-                        max-height: 100%;
-                        object-fit: contain;
-                    }
-                    .table-container {
-                        width: 55%;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        font-size: 11px;
-                    }
-                    th {
-                        background: #f1f5f9;
-                        color: #475569;
-                        text-transform: uppercase;
-                        font-size: 10px;
-                        letter-spacing: 0.05em;
-                        padding: 6px 8px;
-                        border: 1px solid #cbd5e1;
-                        text-align: left;
-                    }
-                    td {
-                        padding: 6px 8px;
-                        border: 1px solid #e2e8f0;
-                        color: #334155;
-                    }
-                    tr:nth-child(even) td {
-                        background: #f8fafc;
-                    }
-                    .footer-notes {
-                        margin-top: 10px;
-                        font-size: 10px;
-                        color: #64748b;
-                        background: #f8fafc;
-                        padding: 8px;
-                        border-radius: 4px;
-                        border-left: 3px solid #cbd5e1;
-                    }
-                </style>
-            </head>
-            <body>
-            `;
-
-            const dataImpressao = new Date().toLocaleDateString('pt-BR');
-
-            for (let i = 0; i < pecas.length; i += 2) {
-                html += `
-                <div class="page-break" id="pdf-page-${Math.floor(i/2)}">
-                    <div class="catalog-header">
-                        <h1>Catálogo Técnico de Produtos</h1>
-                        <div class="date">Gerado em: ${dataImpressao}</div>
-                    </div>
-                </div>`;
-            }
-
-            html += `</body></html>`;
-            doc.open();
-            doc.write(html);
-            doc.close();
-
-            let itemIndex = 0;
-            const totalPaginas = Math.ceil(pecas.length / 2);
-
-            for (let p = 0; p < totalPaginas; p++) {
-                const paginaAlvo = doc.getElementById(`pdf-page-${p}`);
-                if (!paginaAlvo) continue;
-
-                for (let k = 0; k < 2; k++) {
-                    if (itemIndex >= pecas.length) break;
-                    const peca = pecas[itemIndex];
-
-                    const pBlock = doc.createElement('div');
-                    pBlock.className = 'product-block';
-
-                    let tabelaLinhas = '';
-                    if (peca.medidas && peca.medidas.length > 0) {
-                        peca.medidas.forEach(m => {
-                            tabelaLinhas += `<tr><td>${m.nome || m.nomeMedida}</td><td>${m.valor}</td><td>${m.unidade}</td></tr>`;
-                        });
-                    } else {
-                        tabelaLinhas = `<tr><td colspan="3" style="text-align:center; color:#94a3b8;">Nenhuma medida cadastrada</td></tr>`;
-                    }
-
-                    let obsHtml = '';
-                    if (peca.observacao && peca.observacao.trim() !== '') {
-                        obsHtml = `<div class="footer-notes"><strong>Obs:</strong> ${peca.observacao}</div>`;
-                    }
-
-                    pBlock.innerHTML = `
-                        <div class="product-title">${peca.nome}</div>
-                        <div class="product-code">Código: ${peca.codigo}</div>
-                        <div class="product-content">
-                            <div class="product-image-container" id="pdf-img-container-${itemIndex}">
-                                <span style="font-size:11px; color:#94a3b8;">Sem imagem</span>
-                            </div>
-                            <div class="table-container">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Medida</th>
-                                            <th>Valor</th>
-                                            <th>Unid.</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${tabelaLinhas}
-                                    </tbody>
-                                </table>
-                                ${obsHtml}
-                            </div>
-                        </div>
-                    `;
-
-                    paginaAlvo.appendChild(pBlock);
-
-                    if (peca.fotos && peca.fotos.length > 0) {
-                        const imgCont = pBlock.querySelector(`#pdf-img-container-${itemIndex}`);
-                        const imgObj = doc.createElement('img');
-                        imgObj.src = peca.fotos[0]; 
-                        imgObj.onload = () => {
-                            if (imgCont) {
-                                imgCont.innerHTML = '';
-                                imgCont.appendChild(imgObj);
-                            }
-                        };
-                    }
-
-                    itemIndex++;
-                }
-            }
-
-            setTimeout(() => {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
-                setTimeout(() => { document.body.removeChild(iframe); }, 1500);
-            }, 1000);
-        }
-
-        let dadosTemporariosImportacao = null;
-
-        function abrirBackupModal() {
-            carregarLabelsMetadadosBackup();
-            openModal("backupModal");
-        }
-
-        function carregarLabelsMetadadosBackup() {
-            const m1 = localStorage.getItem("backup_ultimo_exportado") || "--";
-            const m2 = localStorage.getItem("backup_ultimo_restaurado") || "--";
-            document.getElementById("lblUltimoBackup").textContent = m1;
-            document.getElementById("lblUltimoRestauro").textContent = m2;
-        }
-
-        function exportarDadosSistema() {
-            if (pecas.length === 0) {
-                alert("Não existem dados de peças para exportar.");
-                return;
-            }
-
-            const tx = db.transaction("nomesMedidas", "readonly");
-            const storeM = tx.objectStore("nomesMedidas");
-            const reqM = storeM.getAll();
-
-            reqM.onsuccess = function() {
-                const medidasLista = reqM.result || [];
-                
-                const pacoteBackup = {
-                    tipo: "BACKUP_CATALOGO_TECNICO_PWA",
-                    versaoModelo: 1,
-                    dataExportacao: new Date().toLocaleString('pt-BR'),
-                    configMedidasGlobais: medidasLista,
-                    listaPecas: pecas
-                };
-
-                const strJson = JSON.stringify(pacoteBackup, null, 2);
-                const blob = new Blob([strJson], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-
-                const dataFicha = new Date().toISOString().slice(0,10);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = `backup_catalogo_${dataFicha}.json`;
-                document.body.appendChild(link);
-                link.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                }, 100);
-
-                localStorage.setItem("backup_ultimo_exportado", new Date().toLocaleString('pt-BR'));
-                carregarLabelsMetadadosBackup();
             };
         }
 
-        function processarFicheiroBackupInput(inputEl) {
-            if (!inputEl.files || inputEl.files.length === 0) return;
-            const arquivo = inputEl.files[0];
+        function carregarMetadadosLayoutBackup() {
+            const exp = localStorage.getItem("backup_ultimo_exportado");
+            const rest = localStorage.getItem("backup_ultimo_restaurado");
+            if(exp) document.getElementById("lblUltimoBackup").textContent = exp;
+            if(rest) document.getElementById("lblUltimoRestauro").textContent = rest;
+        }
 
+        async function exportarDadosSistema() {
+            // ── 1. Ler banco de dados ──
+            const tx = db.transaction(["pecas", "nomesMedidas", "categorias", "materiais"], "readonly");
+
+            let backupObj = {
+                versaoBackup: 3,
+                exportadoEm: "",
+                comprimido: true,
+                pecas: [], nomesMedidas: [], categorias: [], materiais: []
+            };
+
+            await new Promise(res => {
+                tx.objectStore("pecas").getAll().onsuccess = (e) => { backupObj.pecas = e.target.result || []; };
+                tx.objectStore("nomesMedidas").getAll().onsuccess = (e) => { backupObj.nomesMedidas = e.target.result || []; };
+                tx.objectStore("categorias").getAll().onsuccess = (e) => { backupObj.categorias = e.target.result || []; };
+                tx.objectStore("materiais").getAll().onsuccess = (e) => { backupObj.materiais = e.target.result || []; };
+                tx.oncomplete = () => res();
+            });
+
+            // ── 2. Comprimir imagens para o backup ──
+            const totalFotos = backupObj.pecas.reduce((acc, p) => acc + (p.fotos ? p.fotos.length : 0), 0);
+
+            if (totalFotos > 0) {
+                // Mostra progresso discreto no botão de exportar
+                const btnExp = document.querySelector(".backup-btn-export");
+                const textoOriginal = btnExp ? btnExp.textContent : "";
+                let fotoProcessada = 0;
+
+                for (const peca of backupObj.pecas) {
+                    if (peca.fotos && peca.fotos.length > 0) {
+                        const fotosComprimidas = [];
+                        for (const foto of peca.fotos) {
+                            const c = await comprimirImagem(foto, COMP_BACKUP.maxW, COMP_BACKUP.maxH, COMP_BACKUP.q);
+                            fotosComprimidas.push(c);
+                            fotoProcessada++;
+                            if (btnExp) btnExp.textContent = `⏳ Comprimindo… ${fotoProcessada}/${totalFotos}`;
+                        }
+                        peca.fotos = fotosComprimidas;
+                    }
+                }
+                if (btnExp) btnExp.textContent = textoOriginal;
+            }
+
+            // ── 3. Gerar arquivo ──
+            const d = new Date();
+            const strData = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+            backupObj.exportadoEm = strData;
+
+            // JSON minificado (sem espaços/tabs) — economiza ~20% a mais
+            const blob = new Blob([JSON.stringify(backupObj)], { type: "application/json" });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement("a");
+            a.href = url;
+            a.download = `backup_catalogo_pwa_${d.getFullYear()}_${(d.getMonth()+1).toString().padStart(2,'0')}_${d.getDate().toString().padStart(2,'0')}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            localStorage.setItem("backup_ultimo_exportado", strData);
+            carregarMetadadosLayoutBackup();
+
+            // Tamanho estimado
+            const kb = Math.round(blob.size / 1024);
+            alert(`✅ Backup gerado com sucesso!\nTamanho: ${kb < 1024 ? kb + ' KB' : (kb/1024).toFixed(1) + ' MB'}`);
+        }
+
+        function processarFicheiroBackupInput(input) {
+            if(!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const obj = JSON.parse(e.target.result);
-                    if (!obj || obj.tipo !== "BACKUP_CATALOGO_TECNICO_PWA") {
-                        alert("Ficheiro de backup inválido ou não reconhecido por este sistema.");
-                        inputEl.value = "";
+                    const parsed = JSON.parse(e.target.result);
+                    if(!parsed.pecas) {
+                        alert("Ficheiro inválido. Estrutura de dados não reconhecida.");
                         return;
                     }
-                    dadosTemporariosImportacao = obj;
+                    backupDataCarregadaImport = parsed;
                     closeModal("backupModal");
                     openModal("importOpcaoModal");
                 } catch(err) {
-                    alert("Erro ao ler o arquivo JSON de backup.");
-                    console.error(err);
+                    alert("Erro ao ler o ficheiro JSON. Certifique-se que o arquivo está íntegro.");
                 }
-                inputEl.value = "";
+                input.value = "";
             };
-            reader.readAsText(arquivo);
+            reader.readAsText(file);
         }
 
-        function selecionarMetodoImportacao(metodo) {
+        async function selecionarMetodoImportacao(metodo) {
             closeModal("importOpcaoModal");
-            if (!dadosTemporariosImportacao) return;
+            if(!backupDataCarregadaImport) return;
 
-            if (metodo === "total") {
-                const conf = confirm("⚠️ Atenção:\nIsto irá APAGAR de forma irreversível todas as peças atualmente configuradas no seu dispositivo para sobrepor os dados do backup.\n\nDeseja continuar?");
-                if (conf) {
-                    executarImportacaoTotalSubstitutiva(dadosTemporariosImportacao);
+            if(metodo === 'total') {
+                if(confirm("⚠️ ATENÇÃO CRÍTICA:\\nEsta ação apagará TODAS as peças e configurações locais atuais para restaurar exatamente o arquivo. Deseja prosseguir?")) {
+                    // Comprimir imagens do backup antes de salvar
+                    backupDataCarregadaImport = await comprimirImagensBackup(backupDataCarregadaImport);
+                    await executarLimpezaBancoDados();
+                    await salvarDadosImportacaoTotal(backupDataCarregadaImport);
+                    
+                    const d = new Date();
+                    localStorage.setItem("backup_ultimo_restaurado", `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} às ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')} (Completa)`);
+                    
+                    await carregarListasConfiguracoesGlobais();
+                    carregarPecas();
+                    carregarMetadadosLayoutBackup();
+                    alert("Restauração total concluída com sucesso!");
                 }
-            } else if (metodo === "incremental") {
-                abrirFiltroIncremental(dadosTemporariosImportacao);
+            } else if(metodo === 'incremental') {
+                // Comprimir imagens antes de mostrar a lista incremental
+                backupDataCarregadaImport = await comprimirImagensBackup(backupDataCarregadaImport);
+                montarListaFiltroIncremental();
             }
         }
 
-        async function ejecutarImportacaoTotalSubstitutiva(pacote) {
-            try {
-                await executarLimpezaBancoDados();
+        // Comprime todas as imagens de um objeto de backup em memória
+        async function comprimirImagensBackup(data) {
+            if (!data || !data.pecas) return data;
+            // Não recomprimir se o backup já foi gerado com versão 3 (já comprimido)
+            if (data.comprimido && data.versaoBackup >= 3) return data;
 
-                const tx = db.transaction(["nomesMedidas", "pecas"], "readwrite");
-                const storeM = tx.objectStore("nomesMedidas");
-                const storeP = tx.objectStore("pecas");
+            const totalFotos = data.pecas.reduce((acc, p) => acc + (p.fotos ? p.fotos.length : 0), 0);
+            if (totalFotos === 0) return data;
 
-                if (pacote.configMedidasGlobais) {
-                    pacote.configMedidasGlobais.forEach(m => {
-                        storeM.put({ nome: m.nome });
-                    });
+            let feitas = 0;
+            for (const peca of data.pecas) {
+                if (peca.fotos && peca.fotos.length > 0) {
+                    const novasFotos = [];
+                    for (const foto of peca.fotos) {
+                        const c = await comprimirImagem(foto, COMP_BACKUP.maxW, COMP_BACKUP.maxH, COMP_BACKUP.q);
+                        novasFotos.push(c);
+                        feitas++;
+                    }
+                    peca.fotos = novasFotos;
                 }
-
-                if (pacote.listaPecas) {
-                    pacote.listaPecas.forEach(p => {
-                        const clone = { ...p };
-                        delete clone.id; 
-                        storeP.put(clone);
-                    });
-                }
-
-                tx.oncomplete = function() {
-                    localStorage.setItem("backup_ultimo_restaurado", new Date().toLocaleString('pt-BR') + " (Restauração Completa)");
-                    dadosTemporariosImportacao = null;
-                    atualizarListaNomesMedidasGlobais().then(() => {
-                        alert("Restauração completa efetuada com sucesso!");
-                        currentIndex = 0;
-                        carregarPecas();
-                    });
-                };
-            } catch(e) {
-                alert("Erro catastrófico ao restaurar banco.");
-                console.error(e);
             }
+            data.comprimido = true;
+            return data;
         }
 
-        function abrirFiltroIncremental(pacote) {
-            const container = document.getElementById("importIncrementalLista");
-            container.innerHTML = "";
-
-            const itensBackup = pacote.listaPecas || [];
-            if (itensBackup.length === 0) {
-                alert("O arquivo de backup selecionado não contém peças cadastradas.");
-                return;
-            }
-
-            itensBackup.forEach((p, index) => {
-                const pecaExistente = pecas.find(local => local.codigo.trim().toLowerCase() === p.codigo.trim().toLowerCase());
-                const isUpdate = !!pecaExistente;
-
-                const div = document.createElement("div");
-                div.className = "import-item";
-
-                let thumbHtml = `<div class="import-item-thumb-empty">Sem Foto</div>`;
-                if (p.fotos && p.fotos.length > 0) {
-                    thumbHtml = `<img class="import-item-thumb" src="${p.fotos[0]}" alt="Thumb">`;
+        function salvarDadosImportacaoTotal(data) {
+            return new Promise((resolve) => {
+                const tx = db.transaction(["pecas", "nomesMedidas", "categorias", "materiais"], "readwrite");
+                
+                if(data.nomesMedidas && data.nomesMedidas.length > 0) {
+                    const s = tx.objectStore("nomesMedidas");
+                    data.nomesMedidas.forEach(i => { delete i.id; s.add(i); });
+                }
+                if(data.categorias && data.categorias.length > 0) {
+                    const s = tx.objectStore("categorias");
+                    data.categorias.forEach(i => { delete i.id; s.add(i); });
+                }
+                if(data.materiais && data.materiais.length > 0) {
+                    const s = tx.objectStore("materiais");
+                    data.materiais.forEach(i => { delete i.id; s.add(i); });
+                }
+                if(data.pecas && data.pecas.length > 0) {
+                    const s = tx.objectStore("pecas");
+                    data.pecas.forEach(i => { delete i.id; s.add(i); });
                 }
 
-                const badgeHtml = isUpdate 
-                    ? `<span class="import-badge import-badge-update">Atualizar</span>`
-                    : `<span class="import-badge import-badge-new">Novo</span>`;
+                tx.oncomplete = () => resolve(true);
+            });
+        }
 
-                div.innerHTML = `
-                    <input type="checkbox" class="import-item-checkbox" data-index="${index}" checked onchange="atualizarContadorSelecionadosIncremental()">
-                    ${thumbHtml}
+        function montarListaFiltroIncremental() {
+            const listaDiv = document.getElementById("importIncrementalLista");
+            listaDiv.innerHTML = "";
+
+            const codigosLocais = pecas.map(p => (p.codigo || '').toUpperCase());
+
+            backupDataCarregadaImport.pecas.forEach((p, idx) => {
+                const jaExiste = p.codigo ? codigosLocais.includes(p.codigo.toUpperCase()) : false;
+                
+                const itemRow = document.createElement("div");
+                itemRow.classList.add("import-item");
+
+                let thumbHTML = `<div class="import-item-thumb-empty">S/ Foto</div>`;
+                if(p.fotos && p.fotos.length > 0) {
+                    thumbHTML = `<img src="${p.fotos[0]}" class="import-item-thumb">`;
+                }
+
+                const badgeHTML = jaExiste ? 
+                    `<span class="import-badge import-badge-update">Atualizar</span>` : 
+                    `<span class="import-badge import-badge-new">Novo</span>`;
+
+                itemRow.innerHTML = `
+                    <input type="checkbox" class="import-item-checkbox" data-idx="${idx}" checked onchange="atualizarContadorSelecionadosImportIncremental()">
+                    ${thumbHTML}
                     <div class="import-item-info">
-                        <div class="import-item-name">${p.nome}</div>
-                        <div class="import-item-code">Código: ${p.codigo}</div>
+                        <div class="import-item-name">${p.nome || 'Sem Nome'}</div>
+                        <div class="import-item-code">Cód: ${p.codigo || '--'} ${p.categoria ? ' | ' + p.categoria : ''}</div>
                     </div>
-                    ${badgeHtml}
+                    ${badgeHTML}
                 `;
-                container.appendChild(div);
+                listaDiv.appendChild(itemRow);
             });
 
             openModal("importIncrementalModal");
-            atualizarContadorSelecionadosIncremental();
+            atualizarContadorSelecionadosImportIncremental();
+        }
+
+        function atualizarContadorSelecionadosImportIncremental() {
+            const marcados = document.querySelectorAll("#importIncrementalLista .import-item-checkbox:checked").length;
+            document.getElementById("importContadorSelecionados").textContent = `${marcados} itens selecionados`;
         }
 
         function marcarDesmarcarTodosImport(status) {
-            const checkboxes = document.querySelectorAll(".import-item-checkbox");
-            checkboxes.forEach(cb => cb.checked = status);
-            atualizarContadorSelecionadosIncremental();
+            document.querySelectorAll("#importIncrementalLista .import-item-checkbox").forEach(cb => cb.checked = status);
+            atualizarContadorSelecionadosImportIncremental();
         }
 
-        function atualizarContadorSelecionadosIncremental() {
-            const selecionados = document.querySelectorAll(".import-item-checkbox:checked").length;
-            document.getElementById("importContadorSelecionados").textContent = `${selecionados} itens selecionados`;
-        }
-
-        function executarImportacaoIncrementalConfirmada() {
-            const checkboxes = document.querySelectorAll(".import-item-checkbox:checked");
-            if (checkboxes.length === 0) {
-                alert("Selecione pelo menos um item para importar.");
+        async function executarImportacaoIncrementalConfirmada() {
+            const checkboxes = document.querySelectorAll("#importIncrementalLista .import-item-checkbox:checked");
+            if(checkboxes.length === 0) {
+                alert("Nenhuma peça foi selecionada para importação.");
                 return;
             }
 
-            const tx = db.transaction(["nomesMedidas", "pecas"], "readwrite");
-            const storeM = tx.objectStore("nomesMedidas");
-            const storeP = tx.objectStore("pecas");
-
-            if (dadosTemporariosImportacao.configMedidasGlobais) {
-                dadosTemporariosImportacao.configMedidasGlobais.forEach(m => {
-                    storeM.put({ nome: m.nome });
+            const indexesParaImportar = Array.from(checkboxes).map(cb => parseInt(cb.dataset.idx));
+            
+            const txConfig = db.transaction(["nomesMedidas", "categorias", "materiais"], "readwrite");
+            if(backupDataCarregadaImport.nomesMedidas) {
+                const s = txConfig.objectStore("nomesMedidas");
+                backupDataCarregadaImport.nomesMedidas.forEach(m => {
+                    if(!nomesMedidasGlobais.includes(m.nome)) { s.add({ nome: m.nome }); nomesMedidasGlobais.push(m.nome); }
+                });
+            }
+            if(backupDataCarregadaImport.categorias) {
+                const s = txConfig.objectStore("categorias");
+                backupDataCarregadaImport.categorias.forEach(c => {
+                    if(!categoriasGlobais.includes(c.nome)) { s.add({ nome: c.nome }); categoriasGlobais.push(c.nome); }
+                });
+            }
+            if(backupDataCarregadaImport.materiais) {
+                const s = txConfig.objectStore("materiais");
+                backupDataCarregadaImport.materiais.forEach(m => {
+                    if(!materiaisGlobais.includes(m.nome)) { s.add({ nome: m.nome }); materiaisGlobais.push(m.nome); }
                 });
             }
 
-            checkboxes.forEach(cb => {
-                const idxBackup = parseInt(cb.getAttribute("data-index"));
-                const pecaBackup = dadosTemporariosImportacao.listaPecas[idxBackup];
+            await new Promise(r => txConfig.oncomplete = () => r(true));
 
-                const localIdMatch = pecas.find(local => local.codigo.trim().toLowerCase() === pecaBackup.codigo.trim().toLowerCase());
+            const txPecas = db.transaction("pecas", "readwrite");
+            const storePecas = txPecas.objectStore("pecas");
 
-                const cloneParaSalvar = { ...pecaBackup };
-                if (localIdMatch) {
-                    cloneParaSalvar.id = localIdMatch.id; 
-                } else {
-                    delete cloneParaSalvar.id; 
+            for(let idx of indexesParaImportar) {
+                const pecaFake = backupDataCarregadaImport.pecas[idx];
+                const codigoBusca = pecaFake.codigo ? pecaFake.codigo.toUpperCase() : null;
+                
+                let localPeca = null;
+                if(codigoBusca) {
+                    localPeca = pecas.find(p => p.codigo && p.codigo.toUpperCase() === codigoBusca);
                 }
 
-                storeP.put(cloneParaSalvar);
-            });
+                const d = new Date();
+                pecaFake.dataAtualizacao = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} (Importado)`;
 
-            tx.oncomplete = function() {
-                localStorage.setItem("backup_ultimo_restaurado", new Date().toLocaleString('pt-BR') + " (Importação Incremental)");
-                dadosTemporariosImportacao = null;
+                if(localPeca) {
+                    pecaFake.id = localPeca.id;
+                    storePecas.put(pecaFake);
+                } else {
+                    delete pecaFake.id;
+                    storePecas.add(pecaFake);
+                }
+            }
+
+            txPecas.oncomplete = () => {
                 closeModal("importIncrementalModal");
-                atualizarListaNomesMedidasGlobais().then(() => {
-                    alert("Importação parcial executada com sucesso!");
-                    carregarPecas();
-                });
+                const d = new Date();
+                localStorage.setItem("backup_ultimo_restaurado", `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} às ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')} (Incremental)`);
+                
+                atualizarSelectCategoriasForm();
+                carregarPecas();
+                carregarMetadadosLayoutBackup();
+                alert("Importação incremental executada com sucesso!");
             };
         }
 
         function executarLimpezaBancoDados() {
             return new Promise((resolve, reject) => {
-                const tx = db.transaction(["pecas", "nomesMedidas"], "readwrite");
-                const storePecas = tx.objectStore("pecas");
-                const storeMedidas = tx.objectStore("nomesMedidas");
-                
-                storePecas.clear();
-                storeMedidas.clear();
+                const tx = db.transaction(["pecas", "nomesMedidas", "categorias", "materiais"], "readwrite");
+                tx.objectStore("pecas").clear();
+                tx.objectStore("nomesMedidas").clear();
+                tx.objectStore("categorias").clear();
+                tx.objectStore("materiais").clear();
 
                 tx.oncomplete = () => resolve(true);
                 tx.onerror = (e) => reject(e);
@@ -2323,10 +2601,10 @@
         }
 
         async function limparTodoOSistemaComAviso() {
-            const confirmacao1 = confirm("⚠️ Alerta Crítico:\nVocê tem certeza absoluta que deseja apagar TODAS as peças e configurações de medidas cadastradas do dispositivo?");
+            const confirmacao1 = confirm("⚠️ Alerta Crítico:\\nVocê tem certeza absoluta que deseja apagar TODAS as peças e configurações do dispositivo?");
             if (!confirmacao1) return;
 
-            const confirmacao2 = prompt("Para confirmar a exclusão permanente de todo o sistema, digite o termo abaixo:\nEXCLUIR");
+            const confirmacao2 = prompt("Para confirmar a exclusão permanente, digite o termo abaixo:\\nEXCLUIR");
             if (confirmacao2 !== "EXCLUIR" && confirmacao2 !== "excluir") {
                 alert("Confirmação inválida. Operação abortada.");
                 return;
@@ -2337,12 +2615,416 @@
                 alert("O sistema foi totalmente resetado para as configurações de fábrica.");
                 currentIndex = 0;
                 currentPhotoIndex = 0;
+                
+                nomesMedidasGlobais = ["Altura", "Largura", "Comprimento", "Espessura", "Diâmetro", "Passo", "Peso"];
+                categoriasGlobais = ["Fixadores", "Usinados", "Estampados", "Injetados"];
+                materiaisGlobais = ["Aço Carbono", "Aço Inox 304", "Aço Inox 316", "Latão", "Alumínio", "Nylon", "Cobre"];
+                
+                salvarListaPadraoIDB("nomesMedidas", nomesMedidasGlobais);
+                salvarListaPadraoIDB("categorias", categoriasGlobais);
+                salvarListaPadraoIDB("materiais", materiaisGlobais);
+
                 carregarPecas();
                 closeModal('backupModal');
             } catch (err) {
                 console.error(err);
                 alert("Erro ao tentar limpar o banco de dados.");
             }
+        }
+
+        function gerarCatalogoVisual() {
+            if (pecas.length === 0) {
+                alert("Nenhuma peça cadastrada para gerar o catálogo.");
+                return;
+            }
+
+            const dataHoje = new Date();
+            const dataFormatada = `${dataHoje.getDate().toString().padStart(2,'0')}/${(dataHoje.getMonth()+1).toString().padStart(2,'0')}/${dataHoje.getFullYear()}`;
+
+            const cardsHTML = pecas.map((p, idx) => {
+                const fotoHTML = (p.fotos && p.fotos.length > 0)
+                    ? `<img src="${p.fotos[0]}" alt="${p.nome}" class="card-img">`
+                    : `<div class="card-img-empty"><div class="no-img-icon">◻</div></div>`;
+
+                const materiaisStr = (p.materiais && p.materiais.length > 0) ? p.materiais.join(" · ") : "—";
+                const pesoStr = p.pesoValor ? `${p.pesoValor} ${p.pesoUnidade || 'g'}` : "—";
+                const catLabel = p.categoria || '';
+
+                const medidasRows = (p.medidas && p.medidas.length > 0)
+                    ? p.medidas.map((m, mi) => `<tr class="${mi % 2 === 0 ? 'row-even' : 'row-odd'}"><td class="med-nome">${m.nome}</td><td class="med-valor">${m.valor}</td><td class="med-unid">${m.unidade}</td></tr>`).join('')
+                    : `<tr><td colspan="3" class="med-vazia">—</td></tr>`;
+
+                const obsHTML = (p.observacao && p.observacao.trim())
+                    ? `<div class="obs-box"><span class="obs-label">OBS</span>${p.observacao.trim()}</div>` : '';
+
+                const numStr = String(idx + 1).padStart(2, '0');
+
+                return `<div class="card">
+                    <div class="card-left">
+                        <div class="card-badge">${numStr}</div>
+                        ${fotoHTML}
+                        ${catLabel ? `<div class="card-cat">${catLabel}</div>` : ''}
+                    </div>
+                    <div class="card-right">
+                        <div class="card-top-bar">
+                            <div class="card-nome">${p.nome || 'Sem Nome'}</div>
+                            <div class="card-codigo"><span class="codigo-label">CÓD</span><span class="codigo-valor">${p.codigo || '—'}</span></div>
+                        </div>
+                        <div class="card-meta-row">
+                            <span class="meta-item"><span class="meta-label">Material</span> ${materiaisStr}</span>
+                            <span class="meta-sep"> · </span>
+                            <span class="meta-item"><span class="meta-label">Peso</span> ${pesoStr}</span>
+                        </div>
+                        <div class="med-section">
+                            <div class="med-section-title"><span class="med-title-line"></span><span class="med-title-text">MEDIDAS</span><span class="med-title-line"></span></div>
+                            <table class="med-table">
+                                <thead><tr><th>Dimensão</th><th class="th-center">Valor</th><th class="th-center">Un.</th></tr></thead>
+                                <tbody>${medidasRows}</tbody>
+                            </table>
+                        </div>
+                        ${obsHTML}
+                    </div>
+                </div>`;
+            }).join('');
+
+            const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo Técnico de Peças</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+
+body {
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    background: #eef2f7;
+    color: #0f172a;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* ── CAPA ── */
+.capa-wrapper {
+    background: linear-gradient(135deg, #0f2559 0%, #1e40af 55%, #3b82f6 100%);
+    margin-bottom: 1.2rem;
+    position: relative;
+    overflow: hidden;
+}
+.capa-wrapper::before {
+    content: '';
+    position: absolute; top: -50px; right: -50px;
+    width: 240px; height: 240px; border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+}
+.capa-inner {
+    position: relative; z-index: 1;
+    padding: 1.8rem 3rem 1.4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.capa-eyebrow {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.2em;
+    text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 0.3rem;
+}
+.capa-titulo {
+    font-size: 1.9rem; font-weight: 900; color: #fff;
+    line-height: 1.05; letter-spacing: -0.02em;
+}
+.capa-subtitulo { font-size: 0.82rem; color: rgba(255,255,255,0.55); margin-top: 0.3rem; }
+.capa-right { display: flex; gap: 0.6rem; align-items: center; }
+.capa-stat {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px; padding: 0.4rem 0.85rem; text-align: center; min-width: 80px;
+}
+.capa-stat-num { font-size: 1.3rem; font-weight: 800; color: #fff; line-height: 1; }
+.capa-stat-label { font-size: 0.58rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-top: 0.1rem; }
+.capa-footer {
+    background: rgba(0,0,0,0.18); padding: 0.4rem 3rem;
+    font-size: 0.65rem; color: rgba(255,255,255,0.45); letter-spacing: 0.04em;
+    display: flex; justify-content: space-between;
+}
+
+/* ── CATÁLOGO ── */
+.catalogo {
+    max-width: 960px; margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+    display: flex; flex-direction: column; gap: 0.7rem;
+}
+
+/* ── CARD ── */
+.card {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #dde3ed;
+    box-shadow: 0 2px 10px rgba(15,23,42,0.07);
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+/* ── COLUNA ESQUERDA ── */
+.card-left {
+    background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative;
+    min-height: 130px;
+    padding: 0.6rem 0.5rem 1.5rem;
+}
+.card-badge {
+    position: absolute; top: 0.45rem; left: 0.45rem;
+    width: 22px; height: 22px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 5px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.58rem; font-weight: 800; color: rgba(255,255,255,0.6);
+}
+.card-img { width: 100%; max-height: 110px; object-fit: contain; }
+.card-img-empty {
+    display: flex; align-items: center; justify-content: center;
+    color: #334155; height: 90px;
+}
+.no-img-icon { font-size: 1.8rem; opacity: 0.25; }
+.card-cat {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(90deg, #2563eb, #1d4ed8);
+    color: white; font-size: 0.55rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    text-align: center; padding: 0.22rem 0.4rem;
+}
+
+/* ── COLUNA DIREITA ── */
+.card-right {
+    padding: 0.6rem 0.9rem;
+    display: flex; flex-direction: column; gap: 0.4rem;
+}
+
+/* Cabeçalho: nome + código na mesma linha */
+.card-top-bar {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1.5px solid #f1f5f9;
+}
+.card-nome { font-size: 0.9rem; font-weight: 800; color: #0f172a; line-height: 1.2; flex: 1; }
+.card-codigo { display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0; }
+.codigo-label { font-size: 0.52rem; font-weight: 800; letter-spacing: 0.12em; color: #94a3b8; text-transform: uppercase; }
+.codigo-valor { font-size: 0.75rem; font-weight: 700; color: #2563eb; letter-spacing: 0.03em; }
+
+/* Material + Peso numa única linha */
+.card-meta-row {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.72rem; color: #334155; flex-wrap: wrap;
+}
+.meta-label { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-right: 0.2rem; }
+.meta-sep { color: #cbd5e1; font-size: 0.8rem; }
+
+/* ── SEÇÃO MEDIDAS ── */
+.med-section { flex: 1; }
+.med-section-title {
+    display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem;
+}
+.med-title-line { flex: 1; height: 1px; background: #e2e8f0; }
+.med-title-text { font-size: 0.54rem; font-weight: 800; letter-spacing: 0.16em; color: #94a3b8; text-transform: uppercase; white-space: nowrap; }
+
+.med-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+.med-table thead { background: linear-gradient(90deg, #1e40af, #2563eb); }
+.med-table th {
+    padding: 0.22rem 0.5rem; font-size: 0.58rem; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.9);
+    text-align: left; border: none;
+}
+.th-center { text-align: center !important; }
+.row-even { background: #fff; }
+.row-odd  { background: #f8fafc; }
+.med-nome { padding: 0.2rem 0.5rem; font-weight: 600; color: #334155; border-right: 1px solid #f1f5f9; }
+.med-valor { padding: 0.2rem 0.5rem; font-weight: 800; color: #1e40af; text-align: center; border-right: 1px solid #f1f5f9; }
+.med-unid { padding: 0.2rem 0.5rem; color: #64748b; font-size: 0.65rem; text-align: center; }
+.med-vazia { padding: 0.3rem 0.5rem; color: #94a3b8; font-style: italic; text-align: center; }
+
+/* ── OBS ── */
+.obs-box {
+    background: #fffbeb; border-left: 2px solid #f59e0b;
+    border-radius: 0 4px 4px 0; padding: 0.25rem 0.5rem;
+    font-size: 0.68rem; color: #78350f; line-height: 1.4;
+    display: flex; gap: 0.35rem; align-items: baseline;
+}
+.obs-label {
+    font-size: 0.5rem; font-weight: 800; letter-spacing: 0.1em;
+    background: #f59e0b; color: white; padding: 0.08rem 0.3rem;
+    border-radius: 2px; flex-shrink: 0;
+}
+
+/* ── RODAPÉ ── */
+.rodape {
+    max-width: 960px; margin: 0 auto 1rem;
+    padding: 0.6rem 1.5rem; border-top: 1px solid #dde3ed;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.62rem; color: #94a3b8; letter-spacing: 0.03em;
+}
+
+/* ── BOTÃO FLUTUANTE ── */
+.print-bar { position: fixed; bottom: 1.2rem; right: 1.2rem; z-index: 999; display: flex; gap: 0.5rem; align-items: center; }
+.btn-print {
+    background: linear-gradient(135deg, #1e40af, #2563eb); color: white; border: none;
+    padding: 0.75rem 1.4rem; border-radius: 50px; font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; box-shadow: 0 6px 20px rgba(37,99,235,0.45);
+    display: flex; align-items: center; gap: 0.4rem;
+}
+.btn-print:hover { filter: brightness(1.08); }
+.btn-close-bar {
+    background: white; color: #64748b; border: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem; border-radius: 50px; font-size: 0.82rem;
+    font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+/* ── IMPRESSÃO ── */
+@media print {
+    @page { size: A4; margin: 1cm 1.2cm; }
+    body { background: white !important; font-size: 10.5px; }
+    .print-bar { display: none !important; }
+    .capa-wrapper { margin-bottom: 0.8rem; }
+    .catalogo { padding: 0 0 1.5rem; gap: 0.55rem; }
+    .card { box-shadow: none !important; border: 1px solid #d1d5db !important; border-radius: 8px; }
+    .card-left { background: #0f172a !important; min-height: 110px; }
+    .card-img { max-height: 95px; }
+    .med-table thead { background: #1e40af !important; }
+    .med-table th { color: white !important; }
+    .row-even { background: #fff !important; }
+    .row-odd  { background: #f8fafc !important; }
+    .obs-box { background: #fffbeb !important; border-left: 2px solid #f59e0b !important; }
+    .card-cat { background: #2563eb !important; color: white !important; }
+}
+
+@media (max-width: 600px) {
+    .card { grid-template-columns: 1fr; }
+    .card-left { min-height: 120px; }
+    .capa-inner { padding: 1.5rem 1.2rem 1rem; flex-direction: column; align-items: flex-start; }
+    .capa-titulo { font-size: 1.5rem; }
+    .capa-footer { padding: 0.4rem 1.2rem; }
+    .catalogo { padding: 0 0.75rem 2rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="capa-wrapper">
+    <div class="capa-inner">
+        <div class="capa-left">
+            <div class="capa-eyebrow">Documentação Técnica Oficial</div>
+            <div class="capa-titulo">Catálogo<br>de Peças</div>
+            <div class="capa-subtitulo">Especificações técnicas e dimensionais</div>
+        </div>
+        <div class="capa-right">
+            <div class="capa-stat">
+                <div class="capa-stat-num">${pecas.length}</div>
+                <div class="capa-stat-label">${pecas.length === 1 ? 'Peça' : 'Peças'}</div>
+            </div>
+            <div class="capa-stat">
+                <div class="capa-stat-num" style="font-size:0.88rem;">${dataFormatada}</div>
+                <div class="capa-stat-label">Emissão</div>
+            </div>
+        </div>
+    </div>
+    <div class="capa-footer">
+        <span>Catálogo Técnico PWA</span>
+        <span>Gerado em ${dataFormatada}</span>
+    </div>
+</div>
+
+<div class="catalogo">
+    ${cardsHTML}
+</div>
+
+<div class="rodape">
+    <span>Catálogo Técnico PWA</span>
+    <span>Total: ${pecas.length} ${pecas.length === 1 ? 'item' : 'itens'} · Emissão: ${dataFormatada}</span>
+</div>
+
+<div class="print-bar">
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+    <button class="btn-close-bar" onclick="window.close()">✕</button>
+</div>
+
+</body>
+</html>`;
+
+            const novaAba = window.open('', '_blank');
+            if (novaAba) {
+                novaAba.document.write(html);
+                novaAba.document.close();
+            } else {
+                alert("O navegador bloqueou a abertura da nova aba. Permita pop-ups para este site e tente novamente.");
+            }
+        }
+
+        // ── RECOMPRIMIR FOTOS JÁ ARMAZENADAS ─────────────────────────────
+        // Percorre todas as peças no banco e recomprime cada foto.
+        // Útil para reduzir fotos importadas de backups antigos.
+        async function recomprimirFotosExistentes() {
+            if (!confirm("🗜️ Isso vai recomprimir TODAS as fotos armazenadas para economizar espaço.\n\nO processo pode demorar alguns segundos. Continuar?")) return;
+
+            const btn = document.getElementById("btnRecomprimir");
+            const textoOriginal = btn.textContent;
+
+            // Ler todas as peças
+            const pecasLidas = await new Promise(res => {
+                const tx = db.transaction("pecas", "readonly");
+                tx.objectStore("pecas").getAll().onsuccess = e => res(e.target.result || []);
+            });
+
+            const totalFotos = pecasLidas.reduce((acc, p) => acc + (p.fotos ? p.fotos.length : 0), 0);
+            if (totalFotos === 0) { alert("Nenhuma foto encontrada."); return; }
+
+            let feitas = 0;
+
+            for (const peca of pecasLidas) {
+                if (!peca.fotos || peca.fotos.length === 0) continue;
+
+                const novasFotos = [];
+                for (const foto of peca.fotos) {
+                    const c = await comprimirImagem(foto, COMP_ARMAZENAMENTO.maxW, COMP_ARMAZENAMENTO.maxH, COMP_ARMAZENAMENTO.q);
+                    novasFotos.push(c);
+                    feitas++;
+                    btn.textContent = `⏳ ${feitas}/${totalFotos} fotos…`;
+                }
+                peca.fotos = novasFotos;
+
+                // Salvar peça atualizada
+                await new Promise(res => {
+                    const tx2 = db.transaction("pecas", "readwrite");
+                    tx2.objectStore("pecas").put(peca);
+                    tx2.oncomplete = () => res();
+                });
+            }
+
+            btn.textContent = textoOriginal;
+            carregarPecas(); // recarregar viewer com fotos atualizadas
+            calcularTamanhoEstimado();
+            alert(`✅ ${totalFotos} foto(s) otimizada(s) com sucesso!`);
+        }
+
+        // Estima o tamanho total das imagens no banco
+        function calcularTamanhoEstimado() {
+            const tx = db.transaction("pecas", "readonly");
+            tx.objectStore("pecas").getAll().onsuccess = function(e) {
+                const todas = e.target.result || [];
+                let totalBytes = 0;
+                todas.forEach(p => {
+                    if (p.fotos) p.fotos.forEach(f => { totalBytes += (f.length * 3 / 4); }); // base64 → bytes
+                });
+                const el = document.getElementById("lblTamanhoEstimado");
+                if (el) {
+                    const mb = (totalBytes / 1024 / 1024).toFixed(1);
+                    el.textContent = `Tamanho estimado das fotos: ~${mb} MB`;
+                }
+            };
         }
 
         window.onload = initDB;
