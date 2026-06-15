@@ -1539,7 +1539,7 @@
             };
         }
 
-        function carregarPecas() {
+        function carregarPecas(irParaUltima) {
             const tx = db.transaction("pecas", "readonly");
             tx.objectStore("pecas").getAll().onsuccess = function(e) {
                 pecas = (e.target.result || []).sort((a, b) => {
@@ -1548,6 +1548,7 @@
                     return oa - ob;
                 });
                 if (pecas.length > 0) {
+                    if (irParaUltima) currentIndex = pecas.length - 1;
                     if (currentIndex >= pecas.length) currentIndex = pecas.length - 1;
                     if (currentIndex < 0) currentIndex = 0;
                     renderizarPecaAtual();
@@ -1815,7 +1816,7 @@
             pecas.forEach((p, idx) => {
                 const item = document.createElement("div");
                 item.classList.add("search-item");
-                item.dataset.id = p.id;
+                item.dataset.id = String(p.id);
                 item.style.cursor = "default";
 
                 let thumbHTML = `<div class="search-item-thumb-empty">S/ Foto</div>`;
@@ -1833,7 +1834,6 @@
                     <div class="item-numero" style="font-size:0.8rem; font-weight:700; color:var(--primary); flex-shrink:0;">#${idx + 1}</div>
                 `;
 
-                // Clique navega para a peça — ignora se o toque foi no handle de drag
                 item.addEventListener("click", (e) => {
                     if (e.target.classList.contains("drag-handle")) return;
                     currentIndex = pecas.findIndex(orig => orig.id === p.id);
@@ -1844,34 +1844,36 @@
                 container.appendChild(item);
             });
 
-            // Drag-and-drop com SortableJS — apenas pelo handle ⠿
             if (window.Sortable) {
                 new Sortable(container, {
                     animation: 150,
-                    handle: ".drag-handle",   // ← só o ícone ⠿ ativa o drag
+                    handle: ".drag-handle",
                     ghostClass: "drag-over",
                     onEnd: function() {
-                        // Reordenar array de peças conforme nova posição visual
-                        const ids = Array.from(container.querySelectorAll(".search-item"))
+                        // 1. Nova sequência de IDs conforme posição visual
+                        const idsNaOrdem = Array.from(container.querySelectorAll(".search-item"))
                             .map(el => parseInt(el.dataset.id));
-                        const pecasOrdenadas = ids.map(id => pecas.find(p => p.id === id));
 
-                        // Atualizar numeração visual
+                        // 2. Montar novo array na ordem visual
+                        const pecasNaOrdem = idsNaOrdem.map(id => pecas.find(p => p.id === id));
+
+                        // 3. Atribuir campo ordem em cada objeto (muta o objeto já em memória)
+                        pecasNaOrdem.forEach((p, i) => { p.ordem = i; });
+
+                        // 4. Atualizar array global imediatamente — sem recarregar do banco
+                        pecas = pecasNaOrdem;
+
+                        // 5. Atualizar numeração visual
                         container.querySelectorAll(".search-item .item-numero").forEach((el, i) => {
                             el.textContent = `#${i + 1}`;
                         });
 
-                        // Persistir nova ordem no IndexedDB
+                        // 6. Persistir no IndexedDB numa única transação
+                        //    Salva o objeto inteiro (já tem o campo ordem atualizado no passo 3)
                         const tx = db.transaction("pecas", "readwrite");
                         const store = tx.objectStore("pecas");
-                        pecasOrdenadas.forEach((p, i) => {
-                            store.put({ ...p, ordem: i });
-                        });
-                        tx.oncomplete = () => {
-                            pecas = pecasOrdenadas.map((p, i) => ({ ...p, ordem: i }));
-                            if (currentIndex >= pecas.length) currentIndex = pecas.length - 1;
-                            renderizarPecaAtual();
-                        };
+                        pecas.forEach(p => store.put(p));
+                        // NÃO chamar carregarPecas() — evita sobrescrever a ordem em memória
                     }
                 });
             }
@@ -2279,26 +2281,23 @@
             const store = tx.objectStore("pecas");
 
             if (idVal) {
+                // Edição: preservar o campo `ordem` que já existe na peça
+                const pecaExistente = pecas.find(p => p.id === parseInt(idVal));
+                if (pecaExistente && pecaExistente.ordem !== undefined) {
+                    pecaDados.ordem = pecaExistente.ordem;
+                }
                 pecaDados.id = parseInt(idVal);
                 store.put(pecaDados);
             } else {
+                // Nova peça: atribuir ordem = última posição
+                pecaDados.ordem = pecas.length;
                 store.add(pecaDados);
             }
 
             tx.oncomplete = () => {
                 alert("Peça salva com sucesso no banco local!");
                 closeModal("cadastroModal");
-                
-                if (idVal) {
-                    carregarPecas();
-                } else {
-                    tx.db.transaction("pecas","readonly").objectStore("pecas").getAll().onsuccess = (ev) => {
-                        pecas = ev.target.result || [];
-                        currentIndex = pecas.length - 1; 
-                        renderizarPecaAtual();
-                        document.getElementById("menuPecaActions").style.display = "flex";
-                    };
-                }
+                carregarPecas(!idVal); // vai para a última (nova) peça se for cadastro novo
             };
         }
 
